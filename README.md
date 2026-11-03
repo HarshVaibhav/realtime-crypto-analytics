@@ -78,5 +78,5 @@ realtime-crypto-analytics/
 ## Notes
 
 - Do not commit virtual environments, local databases, logs, API keys, or credentials.
-- This project is designed as a near-real-time analytics pipeline; the refresh interval will be set with API rate limits and project requirements in mind.
+- This project is designed as a near-real-time analytics pipeline, the refresh interval will be set with API rate limits and project requirements in mind.
 - No performance or trading recommendations are produced by this project.
