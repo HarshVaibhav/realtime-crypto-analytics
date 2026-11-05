@@ -2,13 +2,13 @@
 
 An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and will ultimately present insights in Power BI.
 
-> **Project status:** In progress — Day 2 completed. Automated collection has been tested for two cycles at a five-minute interval.
+> **Project status:** In progress — Day 3 completed. Data quality checks, pandas cleaning, SQL Server integration, and a two-cycle automated pipeline test have been completed.
 
 ## Technology stack
 
 - Python 3.11
 - Requests
-- pandas
+- pandas and NumPy
 - SQL Server Express
 - SQLAlchemy and pyodbc
 - CoinGecko simple-price API
@@ -34,19 +34,32 @@ An end-to-end analytics project that collects cryptocurrency market data from Co
 - Connected Python to SQL Server using SQLAlchemy and ODBC Driver 18 with Windows authentication.
 - Inserted API observations into SQL Server using pandas `to_sql(..., if_exists="append")`.
 - Built a two-cycle automation test with a five-minute interval.
-- Verified four records per asset (20 total) in SQL Server after two earlier manual inserts and two automated collection cycles.
 
-**Automation scope:** The committed `pipeline.py` is configured for a two-cycle test (`MAX_CYCLES = 2`). It is not configured as an always-on background service.
+### Day 3 — Data quality, cleaning, and integrated pipeline
+
+- Created `data_quality.py` to inspect DataFrame shape, columns, data types, missing values, duplicate rows, statistical summaries, and invalid prices.
+- Created a reusable `clean_data.py` function that works on a copy of the input DataFrame.
+- Standardized coin IDs by trimming whitespace and converting names to lowercase.
+- Converted price and 24-hour change columns to numeric values and parsed timestamps as UTC.
+- Removed rows missing essential fields (`coin`, `price`, or `timestamp`), empty coin IDs, and zero or negative prices.
+- Removed duplicate observations using the combination of `coin` and `timestamp`, keeping the last record for a duplicate key.
+- Kept missing `chg_24h` values because that field is optional; a missing percentage change should not discard an otherwise valid price observation.
+- Tested the cleaning function on 10,000 synthetic rows: 9,998 remained after one invalid price and one duplicate observation were removed. The measured cleaning time in the local test was approximately 0.034 seconds (machine- and run-specific).
+- Tested missing prices and invalid timestamps: two invalid rows were removed, while a valid XRP row with a missing `chg_24h` value was retained.
+- Integrated cleaning into both `save_to_database.py` and `pipeline.py`, so data is cleaned before insertion into SQL Server.
+- Verified the automated two-cycle run in SQL Server. The history table contained 8 records per asset (40 total) after the run.
+
+**Automation scope:** The committed `pipeline.py` is configured for a two-cycle test (`MAX_CYCLES = 2`) with a five-minute interval between cycle starts. It is not an always-on background service.
 
 ## Data schema
 
-The extraction DataFrame contains one row per cryptocurrency:
+The extraction and cleaned DataFrame contains one row per cryptocurrency snapshot:
 
 | Column | Description |
 | --- | --- |
 | `coin` | CoinGecko cryptocurrency ID |
 | `price` | Latest price in USD |
-| `chg_24h` | 24-hour price change percentage |
+| `chg_24h` | 24-hour price change percentage; nullable |
 | `timestamp` | UTC time when Python collected the response |
 
 SQL Server table: `dbo.CryptoPriceHistory`
@@ -64,6 +77,8 @@ SQL Server table: `dbo.CryptoPriceHistory`
 
 ```text
 realtime-crypto-analytics/
+├── clean_data.py
+├── data_quality.py
 ├── fetch.py
 ├── db_connection.py
 ├── save_to_database.py
@@ -88,25 +103,37 @@ Runtime artifacts such as `pipeline.log` and the local `venv/` directory are exc
 
 4. Ensure SQL Server Express is running and create the database/table using the schema described above.
 5. Update the server name in `db_connection.py` to match your local SQL Server instance.
-6. Test the API extraction:
+6. Test API extraction:
 
    ```bash
    python fetch.py
    ```
 
-7. Test the database connection:
+7. Inspect the fetched data:
+
+   ```bash
+   python data_quality.py
+   ```
+
+8. Run the synthetic cleaning tests (10,000-row test and edge-case test):
+
+   ```bash
+   python clean_data.py
+   ```
+
+9. Test the database connection:
 
    ```bash
    python db_connection.py
    ```
 
-8. Insert one snapshot for each configured asset:
+10. Fetch, clean, and insert one snapshot:
 
    ```bash
    python save_to_database.py
    ```
 
-9. Run the two-cycle, five-minute automation test:
+11. Run the two-cycle, five-minute automated pipeline test:
 
    ```bash
    python pipeline.py
@@ -121,7 +148,9 @@ The API is live, so prices and percentage changes vary. CoinGecko API availabili
 - [x] Create SQL Server database and historical table.
 - [x] Connect Python to SQL Server and insert observations.
 - [x] Test scheduled five-minute collection for two cycles.
-- [ ] Add data quality checks and cleaning.
+- [x] Inspect data quality and build a reusable pandas cleaning function.
+- [x] Test cleaning on 10,000 synthetic rows and edge cases.
+- [x] Integrate cleaning into manual and automated SQL Server insertion.
 - [ ] Analyze returns, moving averages, volatility, and anomalies.
 - [ ] Build an interactive Power BI dashboard.
 - [ ] Improve long-running automation, monitoring, and deployment documentation.
@@ -131,4 +160,5 @@ The API is live, so prices and percentage changes vary. CoinGecko API availabili
 - Do not commit virtual environments, logs, local database files, API keys, or credentials.
 - This is a near-real-time polling project, not a live exchange streaming feed.
 - The five-minute polling interval is a project setting and should be adjusted to API limits and reliability needs.
+- Duplicate observations are identified by the combination of cryptocurrency ID and collection timestamp. Historical records at different timestamps are preserved.
 - No trading or investment recommendations are produced by this project.
