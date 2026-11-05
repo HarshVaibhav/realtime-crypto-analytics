@@ -4,6 +4,7 @@ import logging
 import time
 
 from fetch import fetch
+from clean_data import clean_data
 from db_connection import engine
 
 INTERVAL_SECONDS = 300
@@ -17,9 +18,13 @@ logging.basicConfig(
 
 
 def run_pipeline():
-    """Fetch one snapshot and append it to the SQL Server history table."""
-    logging.info("Starting collection cycle.")
+    """Fetch, clean, and append one snapshot to SQL Server."""
 
+    logging.info("Starting collection cycle.")
+    print("\n--- NEW COLLECTION CYCLE ---")
+
+    # STEP 1: Fetch API data.
+    print("\nStep 1: Fetching data...")
     crypto_df = fetch()
 
     if crypto_df is None or crypto_df.empty:
@@ -27,15 +32,32 @@ def run_pipeline():
         print("No cryptocurrency data available.")
         return False
 
-    try:
-        crypto_df["timestamp"] = (
-            crypto_df["timestamp"]
-            .dt.tz_convert("UTC")
-            .dt.tz_localize(None)
-        )
+    print("Records fetched:", len(crypto_df))
 
+    # STEP 2: Clean and validate data.
+    print("\nStep 2: Cleaning data...")
+    cleaned_df = clean_data(crypto_df)
+
+    if cleaned_df.empty:
+        logging.error("No valid records after cleaning.")
+        print("No valid records. Database insertion skipped.")
+        return False
+
+    print("Valid records:", len(cleaned_df))
+
+    # STEP 3: Prepare UTC timestamps for SQL Server DATETIME2.
+    cleaned_df["timestamp"] = (
+        cleaned_df["timestamp"]
+        .dt.tz_convert("UTC")
+        .dt.tz_localize(None)
+    )
+
+    # STEP 4: Append records to SQL Server.
+    print("\nStep 3: Saving data to SQL Server...")
+
+    try:
         with engine.begin() as connection:
-            crypto_df.to_sql(
+            cleaned_df.to_sql(
                 name="CryptoPriceHistory",
                 con=connection,
                 schema="dbo",
@@ -43,8 +65,12 @@ def run_pipeline():
                 index=False,
             )
 
-        logging.info("Successfully inserted %s records.", len(crypto_df))
-        print(f"Successfully inserted {len(crypto_df)} records.")
+        logging.info(
+            "Successfully inserted %s records.",
+            len(cleaned_df),
+        )
+        print("Database insertion successful!")
+        print("Records inserted:", len(cleaned_df))
         return True
 
     except Exception as error:
