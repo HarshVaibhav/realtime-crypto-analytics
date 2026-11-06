@@ -1,8 +1,8 @@
 # Real-Time Crypto Analytics Pipeline
 
-An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and will ultimately present insights in Power BI.
+An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and presents initial exploratory insights in a Power BI Desktop dashboard.
 
-> **Project status:** In progress — Day 3 completed. Data quality checks, pandas cleaning, SQL Server integration, and a two-cycle automated pipeline test have been completed.
+> **Project status:** In progress — Day 4 completed. The initial SQL exploratory analysis and Power BI dashboard are built; dashboard validation, richer history, and deployment remain.
 
 ## Technology stack
 
@@ -12,7 +12,7 @@ An end-to-end analytics project that collects cryptocurrency market data from Co
 - SQL Server Express
 - SQLAlchemy and pyodbc
 - CoinGecko simple-price API
-- Power BI (planned)
+- Power BI Desktop (initial local dashboard built)
 - Git and GitHub
 
 ## Current progress
@@ -49,6 +49,24 @@ An end-to-end analytics project that collects cryptocurrency market data from Co
 - Integrated cleaning into both `save_to_database.py` and `pipeline.py`, so data is cleaned before insertion into SQL Server.
 - Verified the automated two-cycle run in SQL Server. The history table contained 8 records per asset (40 total) after the run.
 
+### Day 4 — SQL exploratory analysis and initial Power BI dashboard
+
+- Analyzed the 40 stored snapshots (8 per cryptocurrency) in SQL Server.
+- Calculated consecutive-observation percentage returns with `LAG(price)` partitioned by cryptocurrency. These are **snapshot-to-snapshot returns**, not CoinGecko's API-provided 24-hour change.
+- Calculated a rolling three-observation price average using SQL window functions.
+- Calculated per-asset average snapshot returns and sample standard deviation of returns as an exploratory volatility measure.
+- Computed Z-scores and flagged potential anomalies using an exploratory threshold; the first observation per asset has no previous price and therefore no snapshot return.
+- Prepared a SQL analytics view named `vw_CryptoAnalytics` for Power BI consumption (observed in Power BI).
+- Connected Power BI Desktop to the analytics view and built an initial local report named `Crypto_Market_Analytics`.
+- Added KPI cards for distinct tracked cryptocurrencies, latest price, average volatility, and average API-reported 24-hour change.
+- Added a cryptocurrency slicer, snapshot-return comparison chart, price chart, volatility-by-asset bar chart, and potential-anomalies table.
+- Verified the slicer changes the KPI values when Ethereum is selected.
+- Improved the snapshot-return chart by using a categorical timestamp axis and removed the duplicate chart.
+
+**Interpretation limits:** The dataset has only eight observations per asset, collected across two days with a substantial gap. The resulting volatility and Z-scores are descriptive demonstrations, **not robust estimates of market risk**. All five assets showed flagged movements at approximately the same collection time; this may reflect actual market movement or a collection/data issue and requires investigation. Do not interpret these flags as confirmed market anomalies.
+
+**Artifact status:** The Power BI `.pbix` file and SQL analysis/view-definition scripts have **not been uploaded to this repository as part of this update**. Dashboard features above are documented from the local screenshots, not from a committed report file.
+
 **Automation scope:** The committed `pipeline.py` is configured for a two-cycle test (`MAX_CYCLES = 2`) with a five-minute interval between cycle starts. It is not an always-on background service.
 
 ## Data schema
@@ -78,7 +96,7 @@ SQL Server table: `dbo.CryptoPriceHistory`
 ```text
 realtime-crypto-analytics/
 ├── clean_data.py
-├── data_quality.py
+├── data_quality.py  # local script; repository presence not verified
 ├── fetch.py
 ├── db_connection.py
 ├── save_to_database.py
@@ -151,8 +169,10 @@ The API is live, so prices and percentage changes vary. CoinGecko API availabili
 - [x] Inspect data quality and build a reusable pandas cleaning function.
 - [x] Test cleaning on 10,000 synthetic rows and edge cases.
 - [x] Integrate cleaning into manual and automated SQL Server insertion.
-- [ ] Analyze returns, moving averages, volatility, and anomalies.
-- [ ] Build an interactive Power BI dashboard.
+- [x] Analyze returns, moving averages, volatility, and exploratory anomaly flags.
+- [x] Build the initial interactive Power BI dashboard locally.
+- [ ] Upload reproducible SQL analytics scripts and a shareable dashboard artifact/screenshots.
+- [ ] Validate KPI semantics, investigate synchronized return spikes, and collect more history.
 - [ ] Improve long-running automation, monitoring, and deployment documentation.
 
 ## Notes
