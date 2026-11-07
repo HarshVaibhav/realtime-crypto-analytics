@@ -2,7 +2,7 @@
 
 An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and presents initial exploratory insights in a Power BI Desktop dashboard.
 
-> **Project status:** In progress — Day 4 completed. The initial SQL exploratory analysis and Power BI dashboard are built; dashboard validation, richer history, and deployment remain.
+> **Project status:** In progress — Day 5 completed. The extraction, cleaning, SQL storage, initial analysis, Power BI dashboard, and core pipeline reliability tests are complete. Dashboard validation, richer history, and deployment remain.
 
 ## Technology stack
 
@@ -63,9 +63,22 @@ An end-to-end analytics project that collects cryptocurrency market data from Co
 - Verified the slicer changes the KPI values when Ethereum is selected.
 - Improved the snapshot-return chart by using a categorical timestamp axis and removed the duplicate chart.
 
-**Interpretation limits:** The dataset has only eight observations per asset, collected across two days with a substantial gap. The resulting volatility and Z-scores are descriptive demonstrations, **not robust estimates of market risk**. All five assets showed flagged movements at approximately the same collection time; this may reflect actual market movement or a collection/data issue and requires investigation. Do not interpret these flags as confirmed market anomalies.
+**Interpretation limits:** The initial dataset had only eight observations per asset, collected across two days with a substantial gap. The resulting volatility and Z-scores are descriptive demonstrations, **not robust estimates of market risk**. All five assets showed flagged movements at approximately the same collection time; this may reflect actual market movement or a collection/data issue and requires investigation. Do not interpret these flags as confirmed market anomalies.
 
-**Artifact status:** The Power BI `.pbix` file and SQL analysis/view-definition scripts have **not been uploaded to this repository as part of this update**. Dashboard features above are documented from the local screenshots, not from a committed report file.
+**Artifact status:** The Power BI `.pbix` file and SQL analysis/view-definition scripts have **not been uploaded to this repository as part of this update**. Dashboard features above are documented from the local report, not from a committed report file.
+
+### Day 5 — Pipeline reliability and error handling
+
+- Improved CoinGecko request handling to distinguish permanent HTTP errors (such as 404) from retryable conditions (such as timeouts, connection errors, HTTP 429, and server-side 5xx responses).
+- Added validation for empty or invalid API payloads and partial coin responses. Invalid individual records are skipped rather than causing the entire response to fail.
+- Tested the empty-response path by substituting an empty dictionary after a successful API request. The fetch function returned `None` and did not pass an empty DataFrame downstream.
+- Added exception handling around the pipeline stages and SQL insertion, with detailed error tracebacks written to `pipeline.log`.
+- Simulated a database failure deliberately and verified that the exception was caught, both collection cycles completed, and the process exited cleanly with 2 failed cycles rather than an unhandled crash.
+- Disabled the test switches and ran the real two-cycle pipeline successfully: 5 records fetched, cleaned, and inserted per cycle; 2 successful cycles and 0 failed cycles.
+- Verified the SQL Server history table in SSMS after the successful run: **14 records per cryptocurrency, 70 records total** across the five tracked assets.
+- Added a table-existence check before insertion in the pipeline to avoid accidentally creating a new table when the intended SQL table is missing.
+
+**Reliability test scope:** These are controlled failure simulations and a successful two-cycle integration test. They demonstrate the tested exception-handling paths, but do not constitute a long-duration production uptime test or prove recovery from every possible real SQL Server outage.
 
 **Automation scope:** The committed `pipeline.py` is configured for a two-cycle test (`MAX_CYCLES = 2`) with a five-minute interval between cycle starts. It is not an always-on background service.
 
@@ -171,6 +184,8 @@ The API is live, so prices and percentage changes vary. CoinGecko API availabili
 - [x] Integrate cleaning into manual and automated SQL Server insertion.
 - [x] Analyze returns, moving averages, volatility, and exploratory anomaly flags.
 - [x] Build the initial interactive Power BI dashboard locally.
+- [x] Test empty API responses and simulated database failures.
+- [x] Verify successful two-cycle pipeline execution and SQL record counts.
 - [ ] Upload reproducible SQL analytics scripts and a shareable dashboard artifact/screenshots.
 - [ ] Validate KPI semantics, investigate synchronized return spikes, and collect more history.
 - [ ] Improve long-running automation, monitoring, and deployment documentation.
