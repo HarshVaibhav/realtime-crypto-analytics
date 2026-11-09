@@ -2,7 +2,7 @@
 
 An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and presents exploratory and data-quality insights in a Power BI Desktop dashboard.
 
-> **Project status:** In progress — Day 6 completed. API extraction, cleaning, SQL storage, analytical views, Power BI visuals, interval-quality analysis, and controlled pipeline reliability tests are complete. Dashboard refinement, reproducible SQL documentation, longer-term collection, and deployment remain.
+> **Project status:** In progress — Day 7 completed. API extraction, cleaning, SQL storage, analytical views, Power BI visuals, interval-quality analysis, and controlled pipeline reliability tests are complete. Dashboard refinement, reproducible SQL documentation, longer-term collection, and deployment remain.
 
 ## Technology stack
 
@@ -111,6 +111,21 @@ An end-to-end analytics project that collects cryptocurrency market data from Co
 **Refresh limitation:** This validates a **manual Power BI Desktop refresh** after new SQL rows were inserted. It does not establish automatic scheduled refresh or live streaming. The Python pipeline remains a finite two-cycle test rather than an always-on service.
 
 **Interval interpretation:** The 60% result is based on the current stored history and the interval classification logic. It is a collection-cadence metric, not API uptime, data completeness over all possible periods, or market performance. The interval thresholds should be documented alongside the SQL definition before the metric is treated as a production service-level indicator.
+
+### Day 7 — SQL query-writing practice and analytical problem solving
+
+Practised six SQL business-analysis tasks against the cryptocurrency price-history dataset:
+
+- Selected the latest recorded price for each cryptocurrency using a CTE and `ROW_NUMBER()`, ordered by collection timestamp with an ID tie-breaker.
+- Calculated snapshot-to-snapshot percentage returns using `LAG()` and protected the division with `NULLIF()`.
+- Calculated rolling five-observation and ten-observation moving averages using window frames.
+- Compared each cryptocurrency's highest and lowest recorded prices using `MAX()`, `MIN()`, and `GROUP BY`.
+- Ranked cryptocurrencies by their latest API-reported 24-hour percentage change using `RANK()`.
+- Compared average snapshot returns and return volatility using `AVG()` and SQL Server's `STDEV()`.
+
+**Learning focus:** The exercises reinforced grouping versus sorting, CTEs, window functions, handling the first row in a `LAG()` calculation, ranking ties, deterministic ordering, and SQL Server-specific function names.
+
+**Scope note:** These were guided query-writing exercises. The six queries have not yet been added as reproducible SQL script files in this repository, and their results should be independently rerun against the current database before being treated as validated project outputs.
 
 ## Data schema
 
