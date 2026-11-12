@@ -1,160 +1,38 @@
 # Real-Time Crypto Analytics Pipeline
 
-An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and presents exploratory and data-quality insights in a Power BI Desktop dashboard.
+An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and presents market and data-collection insights in a Power BI Desktop dashboard.
 
-> **Project status:** In progress — Day 7 completed. API extraction, cleaning, SQL storage, analytical views, Power BI visuals, interval-quality analysis, and controlled pipeline reliability tests are complete. Dashboard refinement, reproducible SQL documentation, longer-term collection, and deployment remain.
+> **Project status:** Core pipeline, SQL analysis, and Power BI dashboard are built. Final documentation, longer-term data collection, and deployment improvements remain.
+
+## Project overview
+
+The project tracks five cryptocurrencies — Bitcoin, Ethereum, BNB, Solana, and XRP — using CoinGecko's simple-price API. Python fetches and validates the API response, pandas cleans the observations, SQL Server stores historical snapshots, and Power BI provides exploratory analysis.
+
+This is a **near-real-time polling pipeline**, not a live exchange streaming feed.
 
 ## Technology stack
 
 - Python 3.11
-- Requests
-- pandas and NumPy
+- Requests and pandas
 - SQL Server Express
 - SQLAlchemy and pyodbc
 - CoinGecko simple-price API
 - Power BI Desktop
 - Git and GitHub
 
-## Current progress
+## Architecture
 
-### Day 1 — API extraction and pandas inspection
+1. **Extract:** Request USD prices and API-reported 24-hour percentage changes for five assets.
+2. **Validate and clean:** Handle malformed or partial responses, convert values, remove invalid prices and duplicate coin/timestamp observations, and retain valid records with a missing optional 24-hour change.
+3. **Store:** Append timestamped observations to `dbo.CryptoPriceHistory` in SQL Server.
+4. **Analyze:** Use SQL window functions, aggregation, interval-quality classification, and hourly price movement.
+5. **Visualize:** Use Power BI Desktop for price trends, returns, volatility, anomaly exploration, and collection-interval quality.
 
-- Set up a Python virtual environment and installed dependencies.
-- Connected to the CoinGecko simple-price endpoint.
-- Retrieved Bitcoin and Ethereum prices in USD and their 24-hour percentage changes.
-- Parsed the JSON response into a pandas DataFrame.
-- Added a UTC collection timestamp and inspected the data using pandas methods.
-
-### Day 2 — Multi-asset extraction, SQL Server storage, and automation
-
-- Expanded extraction to five assets: Bitcoin, Ethereum, BNB, Solana, and XRP.
-- Added a 15-second request timeout, exception handling, and up to three request attempts with exponential backoff.
-- Created the `CryptoAnalyticsDB` database in SQL Server Express.
-- Created `dbo.CryptoPriceHistory` to preserve historical snapshots. The table stores a unique ID, coin ID, USD price, 24-hour percentage change, collection timestamp, and database insertion timestamp.
-- Connected Python to SQL Server using SQLAlchemy and ODBC Driver 18 with Windows authentication.
-- Inserted API observations into SQL Server using pandas `to_sql(..., if_exists="append")`.
-- Built a two-cycle automation test with a five-minute interval.
-
-### Day 3 — Data quality, cleaning, and integrated pipeline
-
-- Created `data_quality.py` to inspect DataFrame shape, columns, data types, missing values, duplicate rows, statistical summaries, and invalid prices.
-- Created a reusable `clean_data.py` function that works on a copy of the input DataFrame.
-- Standardized coin IDs by trimming whitespace and converting names to lowercase.
-- Converted price and 24-hour change columns to numeric values and parsed timestamps as UTC.
-- Removed rows missing essential fields (`coin`, `price`, or `timestamp`), empty coin IDs, and zero or negative prices.
-- Removed duplicate observations using the combination of `coin` and `timestamp`, keeping the last record for a duplicate key.
-- Kept missing `chg_24h` values because that field is optional; a missing percentage change should not discard an otherwise valid price observation.
-- Tested the cleaning function on 10,000 synthetic rows: 9,998 remained after one invalid price and one duplicate observation were removed. The measured cleaning time in the local test was approximately 0.034 seconds (machine- and run-specific).
-- Tested missing prices and invalid timestamps: two invalid rows were removed, while a valid XRP row with a missing `chg_24h` value was retained.
-- Integrated cleaning into both `save_to_database.py` and `pipeline.py`, so data is cleaned before insertion into SQL Server.
-- Verified the automated two-cycle run in SQL Server. The history table contained 8 records per asset (40 total) after the run.
-
-### Day 4 — SQL exploratory analysis and initial Power BI dashboard
-
-- Analyzed the 40 stored snapshots (8 per cryptocurrency) in SQL Server.
-- Calculated consecutive-observation percentage returns with `LAG(price)` partitioned by cryptocurrency. These are **snapshot-to-snapshot returns**, not CoinGecko's API-provided 24-hour change.
-- Calculated a rolling three-observation price average using SQL window functions.
-- Calculated per-asset average snapshot returns and sample standard deviation of returns as an exploratory volatility measure.
-- Computed Z-scores and flagged potential anomalies using an exploratory threshold; the first observation per asset has no previous price and therefore no snapshot return.
-- Prepared a SQL analytics view named `vw_CryptoAnalytics` for Power BI consumption.
-- Connected Power BI Desktop to the analytics view and built an initial local report named `Crypto_Market_Analytics`.
-- Added KPI cards for distinct tracked cryptocurrencies, latest price, average volatility, and average API-reported 24-hour change.
-- Added a cryptocurrency slicer, snapshot-return comparison chart, price chart, volatility-by-asset bar chart, and potential-anomalies table.
-- Verified the slicer changes KPI values when an individual cryptocurrency is selected.
-- Improved the snapshot-return chart by using a categorical timestamp axis and removed the duplicate chart.
-
-**Interpretation limits:** The initial dataset had only eight observations per asset, collected across two days with a substantial gap. The resulting volatility and Z-scores are descriptive demonstrations, **not robust estimates of market risk**. All five assets showed flagged movements at approximately the same collection time; this may reflect actual market movement or a collection/data issue and requires investigation. Do not interpret these flags as confirmed market anomalies.
-
-### Day 5 — Pipeline reliability and error handling
-
-- Improved CoinGecko request handling to distinguish permanent HTTP errors (such as 404) from retryable conditions (such as timeouts, connection errors, HTTP 429, and server-side 5xx responses).
-- Added validation for empty or invalid API payloads and partial coin responses. Invalid individual records are skipped rather than causing the entire response to fail.
-- Tested the empty-response path by substituting an empty dictionary after a successful API request. The fetch function returned `None` and did not pass an empty DataFrame downstream.
-- Added exception handling around the pipeline stages and SQL insertion, with detailed error tracebacks written to `pipeline.log`.
-- Simulated a database failure deliberately and verified that the exception was caught, both collection cycles completed, and the process exited cleanly with 2 failed cycles rather than an unhandled crash.
-- Disabled the test switches and ran the real two-cycle pipeline successfully: 5 records fetched, cleaned, and inserted per cycle; 2 successful cycles and 0 failed cycles.
-- Verified the SQL Server history table in SSMS after the successful run: **14 records per cryptocurrency, 70 records total** across the five tracked assets.
-- Added a table-existence check before insertion in the pipeline to avoid accidentally creating a new table when the intended SQL table is missing.
-
-**Reliability test scope:** These are controlled failure simulations and a successful two-cycle integration test. They demonstrate the tested exception-handling paths, but do not constitute a long-duration production uptime test or prove recovery from every possible real SQL Server outage.
-
-**Automation scope:** The committed `pipeline.py` is configured for a two-cycle test (`MAX_CYCLES = 2`) with a five-minute interval between cycle starts. It is not an always-on background service.
-
-### Day 6 — Collection interval quality and Power BI refresh validation
-
-- Added SQL interval analysis to distinguish `First Observation`, `Reliable Interval`, `Short Interval`, and `Long Interval` records using the time difference between consecutive observations for each cryptocurrency.
-- The Power BI model now includes the interval fields `previous_timestamp`, `interval_seconds`, `interval_status`, and `reliable_return_pct` alongside the existing market-analysis fields.
-- Built a stacked column chart, **Data Collection Interval Quality**, to compare interval categories by cryptocurrency.
-- Created a DAX measure, **Reliable Collection Rate**, that excludes first observations because they have no preceding timestamp and calculates reliable intervals as a share of all comparable intervals:
-
-  ```DAX
-  Reliable Collection Rate =
-  VAR ReliableCount =
-      CALCULATE(
-          COUNTROWS('vw_CryptoAnalytics'),
-          'vw_CryptoAnalytics'[interval_status] = "Reliable Interval"
-      )
-  VAR ValidIntervals =
-      CALCULATE(
-          COUNTROWS('vw_CryptoAnalytics'),
-          'vw_CryptoAnalytics'[interval_status] <> "First Observation"
-      )
-  RETURN
-      DIVIDE(ReliableCount, ValidIntervals, 0)
-  ```
-
-- Validated the measure against the observed interval counts per asset: 15 reliable intervals out of 25 comparable intervals, producing **60.00%**. The first observation is excluded from the denominator.
-- Tested the cryptocurrency slicer against the interval chart and potential-anomalies table. The selected asset filters those visuals; clearing the selection restores all five assets.
-- Verified new SQL records for all five cryptocurrencies at `2026-11-08 16:07:10.916`, with the preceding batch at `2026-11-08 16:02:10.906`.
-- Refreshed the Power BI Desktop model and confirmed that the updated report displays the collection-quality visual, anomaly table, slicer, and reliable collection KPI.
-
-**Refresh limitation:** This validates a **manual Power BI Desktop refresh** after new SQL rows were inserted. It does not establish automatic scheduled refresh or live streaming. The Python pipeline remains a finite two-cycle test rather than an always-on service.
-
-**Interval interpretation:** The 60% result is based on the current stored history and the interval classification logic. It is a collection-cadence metric, not API uptime, data completeness over all possible periods, or market performance. The interval thresholds should be documented alongside the SQL definition before the metric is treated as a production service-level indicator.
-
-### Day 7 — SQL query-writing practice and analytical problem solving
-
-Practised six SQL business-analysis tasks against the cryptocurrency price-history dataset:
-
-- Selected the latest recorded price for each cryptocurrency using a CTE and `ROW_NUMBER()`, ordered by collection timestamp with an ID tie-breaker.
-- Calculated snapshot-to-snapshot percentage returns using `LAG()` and protected the division with `NULLIF()`.
-- Calculated rolling five-observation and ten-observation moving averages using window frames.
-- Compared each cryptocurrency's highest and lowest recorded prices using `MAX()`, `MIN()`, and `GROUP BY`.
-- Ranked cryptocurrencies by their latest API-reported 24-hour percentage change using `RANK()`.
-- Compared average snapshot returns and return volatility using `AVG()` and SQL Server's `STDEV()`.
-
-**Learning focus:** The exercises reinforced grouping versus sorting, CTEs, window functions, handling the first row in a `LAG()` calculation, ranking ties, deterministic ordering, and SQL Server-specific function names.
-
-**Scope note:** These were guided query-writing exercises. The six queries have not yet been added as reproducible SQL script files in this repository, and their results should be independently rerun against the current database before being treated as validated project outputs.
-
-## Data schema
-
-The extraction and cleaned DataFrame contains one row per cryptocurrency snapshot:
-
-| Column | Description |
-| --- | --- |
-| `coin` | CoinGecko cryptocurrency ID |
-| `price` | Latest price in USD |
-| `chg_24h` | 24-hour price change percentage; nullable |
-| `timestamp` | UTC time when Python collected the response |
-
-SQL Server table: `dbo.CryptoPriceHistory`
-
-| Column | Description |
-| --- | --- |
-| `id` | Identity primary key |
-| `coin` | Cryptocurrency ID |
-| `price` | USD price (`DECIMAL(18,8)`) |
-| `chg_24h` | 24-hour change (`DECIMAL(12,6)`) |
-| `timestamp` | Collection timestamp stored as UTC in `DATETIME2(3)` |
-| `created_at` | SQL Server insertion timestamp (UTC default) |
-
-## Project structure
+## Repository structure
 
 ```text
 realtime-crypto-analytics/
 ├── clean_data.py
-├── data_quality.py  # local script; repository presence not verified
 ├── fetch.py
 ├── db_connection.py
 ├── save_to_database.py
@@ -162,14 +40,103 @@ realtime-crypto-analytics/
 ├── test_environment.py
 ├── requirements.txt
 ├── .gitignore
-└── README.md
+├── README.md
+└── sql/
+    ├── day_07_crypto_analysis.sql
+    └── day_08_hourly_analysis.sql
 ```
 
-Runtime artifacts such as `pipeline.log` and the local `venv/` directory are excluded by `.gitignore`.
+The Power BI report (`Crypto_Market_Analytics.pbix`) is maintained locally and is not included in this repository. Runtime artifacts such as the virtual environment, logs, local database files, and credentials should not be committed.
+
+## Data model
+
+### Source table: `dbo.CryptoPriceHistory`
+
+| Column | Description |
+| --- | --- |
+| `id` | Identity primary key |
+| `coin` | CoinGecko cryptocurrency ID |
+| `price` | USD price (`DECIMAL(18,8)`) |
+| `chg_24h` | API-reported 24-hour change (`DECIMAL(12,6)`, nullable) |
+| `timestamp` | Python collection timestamp stored as UTC in `DATETIME2(3)` |
+| `created_at` | SQL Server insertion timestamp, UTC default |
+
+### Analytical views
+
+- `dbo.vw_CryptoAnalytics` — existing snapshot-level market analysis and collection interval fields used by the Power BI report.
+- `dbo.vw_CryptoIntervalQuality` — interval-quality analysis used to classify the time between consecutive observations.
+- `dbo.vw_CryptoHourlyAnalysis` — hourly aggregation and price movement analysis created during Day 8. It includes hourly average, minimum, maximum, observation count, previous available hourly average, absolute price difference, and percentage change.
+
+The reproducible Day 8 view definition is in [`sql/day_08_hourly_analysis.sql`](sql/day_08_hourly_analysis.sql). The Day 7 query exercises are in [`sql/day_07_crypto_analysis.sql`](sql/day_07_crypto_analysis.sql).
+
+## Project progress
+
+### Days 1–3 — Extraction, storage, cleaning, and pipeline integration
+
+- Set up Python 3.11 and the project virtual environment.
+- Connected to CoinGecko's simple-price endpoint and expanded from Bitcoin and Ethereum to five assets.
+- Added request timeout, exception handling, retries with exponential backoff, response validation, and partial-response handling.
+- Created `CryptoAnalyticsDB` and `dbo.CryptoPriceHistory` in SQL Server Express.
+- Connected Python to SQL Server using SQLAlchemy, pyodbc, ODBC Driver 18, and Windows authentication.
+- Built reusable pandas cleaning logic for coin IDs, numeric values, UTC timestamps, missing essential fields, invalid prices, and duplicate observations.
+- Tested cleaning on 10,000 synthetic rows; 9,998 remained after one invalid-price row and one duplicate were removed. The measured runtime was approximately 0.034 seconds in that local test and is machine/run specific.
+- Integrated cleaning into the manual save and pipeline workflows.
+
+### Day 4 — SQL exploratory analysis and initial Power BI dashboard
+
+- Used `LAG()` to calculate consecutive-snapshot returns, plus rolling averages, sample standard deviation, Z-scores, and exploratory anomaly flags.
+- Created `vw_CryptoAnalytics` for Power BI.
+- Built a local Power BI report with KPI cards, a cryptocurrency slicer, price and return visuals, volatility comparison, and an anomaly table.
+- Confirmed that slicer selections filter relevant visuals.
+
+**Interpretation limit:** Snapshot-to-snapshot returns are not the same as the API's 24-hour change. Early history was limited and contained collection gaps, so volatility and anomaly flags are exploratory rather than robust risk estimates or confirmed market anomalies.
+
+### Day 5 — Pipeline reliability
+
+- Distinguished permanent HTTP errors from retryable timeouts, connection failures, rate limits, and server errors.
+- Tested empty API responses and simulated database insertion failure.
+- Added pipeline logging and stage-level exception handling.
+- Completed a successful two-cycle integration test, inserting five asset records per cycle. At that validation point, the table contained 14 records per cryptocurrency (70 total).
+
+**Automation limitation:** The committed `pipeline.py` is configured with `MAX_CYCLES = 2` and a five-minute interval between cycle starts. It is a controlled two-cycle run, not an always-on background service.
+
+### Day 6 — Collection interval quality
+
+- Classified intervals between consecutive observations as `First Observation`, `Reliable Interval`, `Short Interval`, or `Long Interval`.
+- Added interval fields to the SQL analytics model and created a Power BI collection-quality visual.
+- Created a Reliable Collection Rate measure that excludes first observations from the denominator.
+- Validated manual Power BI Desktop refresh and slicer interactions.
+
+**Interpretation limit:** Reliable Collection Rate measures the share of comparable stored intervals classified as reliable under the project's interval thresholds. It is not API uptime, completeness across every possible period, or market performance. The current dashboard measure is dynamic; historical percentages documented in earlier development notes should not be treated as the current value.
+
+### Day 7 — SQL analytical queries
+
+Added six reproducible SQL exercises in `sql/day_07_crypto_analysis.sql`:
+
+- Latest recorded price per cryptocurrency using a CTE and `ROW_NUMBER()`.
+- Snapshot-to-snapshot returns using `LAG()` and `NULLIF()`.
+- Five- and ten-observation moving averages.
+- Highest and lowest recorded prices per cryptocurrency.
+- Ranking by the latest API-reported 24-hour change.
+- Average snapshot return and sample return volatility using SQL Server's `STDEV()`.
+
+These scripts should be run against the target database to reproduce the results. Snapshot returns and API-reported 24-hour changes are kept distinct.
+
+### Day 8 — Hourly market analysis and Power BI integration
+
+- Aggregated observations into hourly buckets for each cryptocurrency.
+- Calculated hourly average, minimum, maximum, and record count.
+- Used `LAG()` to compare each hourly average with the previous available hourly bucket.
+- Calculated absolute and percentage price movement.
+- Created `dbo.vw_CryptoHourlyAnalysis` and verified it in SQL Server; the initial Power BI load returned 50 rows at the time of validation.
+- Loaded the hourly analysis view into the existing Power BI report and added hourly price and percentage-movement analysis visuals.
+- Updated the Reliable Collection Rate KPI to use the model's interval-quality data.
+
+**Hourly interpretation limit:** Because collection intervals contain gaps, `LAG()` compares with the previous available hourly group for that cryptocurrency. This is not necessarily a one-clock-hour return. The hourly aggregates summarize only observations actually collected.
 
 ## Run locally
 
-1. Clone this repository.
+1. Clone the repository.
 2. Create and activate a virtual environment.
 3. Install dependencies:
 
@@ -177,71 +144,69 @@ Runtime artifacts such as `pipeline.log` and the local `venv/` directory are exc
    python -m pip install -r requirements.txt
    ```
 
-4. Ensure SQL Server Express is running and create the database/table using the schema described above.
-5. Update the server name in `db_connection.py` to match your local SQL Server instance.
+4. Ensure SQL Server Express is running. Create `CryptoAnalyticsDB` and the `dbo.CryptoPriceHistory` table using the schema above.
+5. Update the SQL Server instance configuration in `db_connection.py` for your machine. Do not commit credentials or secrets.
 6. Test API extraction:
 
    ```bash
    python fetch.py
    ```
 
-7. Inspect the fetched data:
-
-   ```bash
-   python data_quality.py
-   ```
-
-8. Run the synthetic cleaning tests (10,000-row test and edge-case test):
+7. Run the cleaning tests:
 
    ```bash
    python clean_data.py
    ```
 
-9. Test the database connection:
+8. Test the database connection:
 
    ```bash
    python db_connection.py
    ```
 
-10. Fetch, clean, and insert one snapshot:
+9. Fetch, clean, and insert one snapshot:
 
    ```bash
    python save_to_database.py
    ```
 
-11. Run the two-cycle, five-minute automated pipeline test:
+10. Run the controlled two-cycle pipeline:
 
-   ```bash
-   python pipeline.py
-   ```
+    ```bash
+    python pipeline.py
+    ```
 
-The API is live, so prices and percentage changes vary. CoinGecko API availability and rate limits apply. The SQL Server connection configuration currently uses Windows authentication and ODBC Driver 18; adapt it for your own machine.
+11. In SQL Server Management Studio, run the scripts in the `sql/` folder against `CryptoAnalyticsDB`. The Day 8 script creates or alters `dbo.vw_CryptoHourlyAnalysis`.
 
-## Planned milestones
+12. Open the local Power BI report and connect it to the SQL Server database. Refresh the model after new records are inserted.
 
-- [x] Fetch multiple cryptocurrencies from CoinGecko.
-- [x] Add request timeout, exception handling, and retry logic.
-- [x] Create SQL Server database and historical table.
-- [x] Connect Python to SQL Server and insert observations.
-- [x] Test scheduled five-minute collection for two cycles.
-- [x] Inspect data quality and build a reusable pandas cleaning function.
-- [x] Test cleaning on 10,000 synthetic rows and edge cases.
-- [x] Integrate cleaning into manual and automated SQL Server insertion.
-- [x] Analyze returns, moving averages, volatility, and exploratory anomaly flags.
-- [x] Build the initial interactive Power BI dashboard locally.
-- [x] Test empty API responses and simulated database failures.
-- [x] Verify successful two-cycle pipeline execution and SQL record counts.
-- [x] Build collection interval quality analysis and a reliable collection KPI.
-- [x] Validate cryptocurrency slicer interactions and manual Power BI refresh.
-- [ ] Upload reproducible SQL analytics and interval-quality view-definition scripts.
-- [ ] Upload a shareable dashboard artifact or selected screenshots.
-- [ ] Investigate synchronized return spikes and collect a longer, more continuous history.
-- [ ] Improve long-running automation, monitoring, and deployment documentation.
+CoinGecko API availability and rate limits apply. Prices and percentage changes vary over time. Power BI Desktop refresh in this project is manual; scheduled refresh and unattended deployment have not been established.
+
+## Current limitations and next improvements
+
+- Collection history contains gaps; hourly analysis is based only on available observations.
+- The committed pipeline is a finite two-cycle test, not a continuously running service.
+- Power BI is a local Desktop report; no published dashboard or scheduled refresh is claimed.
+- Volatility and anomaly analysis are exploratory and should be interpreted cautiously with the available history.
+- Continue collecting data over a longer period and investigate synchronized return spikes.
+- Add automated orchestration, monitoring, and deployment only after the local pipeline is stable and its operational requirements are defined.
+
+## Project checklist
+
+- [x] CoinGecko extraction for five cryptocurrencies.
+- [x] Request timeout, retry logic, and response validation.
+- [x] SQL Server historical storage.
+- [x] Python cleaning and validation.
+- [x] Controlled pipeline reliability tests.
+- [x] SQL snapshot analysis and interval-quality analysis.
+- [x] Power BI Desktop dashboard and manual refresh validation.
+- [x] Day 7 reusable SQL analysis script.
+- [x] Day 8 hourly analysis view and Power BI integration.
+- [ ] Add selected dashboard screenshots to the repository.
+- [ ] Collect a longer, more continuous history and reassess analytical stability.
+- [ ] Implement and document unattended orchestration and deployment.
 
 ## Notes
 
-- Do not commit virtual environments, logs, local database files, API keys, or credentials.
-- This is a near-real-time polling project, not a live exchange streaming feed.
-- The five-minute polling interval is a project setting and should be adjusted to API limits and reliability needs.
-- Duplicate observations are identified by the combination of cryptocurrency ID and collection timestamp. Historical records at different timestamps are preserved.
-- No trading or investment recommendations are produced by this project.
+- Never commit virtual environments, logs, local database files, API keys, or credentials.
+- This project is for analytics and learning; it does not generate trading or investment recommendations.
