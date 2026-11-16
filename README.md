@@ -2,7 +2,7 @@
 
 An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and presents market and data-collection insights in a Power BI Desktop dashboard.
 
-> **Project status:** Core pipeline, SQL analysis, and Power BI dashboard are built. Final documentation, longer-term data collection, and deployment improvements remain.
+> **Project status:** Core pipeline, SQL analysis, and Power BI dashboard are built and passed local end-to-end validation on November 16, 2026. Refreshed dashboard screenshots are prepared for the repository. Longer-term data collection and deployment improvements remain.
 
 ## Project overview
 
@@ -47,6 +47,16 @@ realtime-crypto-analytics/
 ```
 
 The Power BI report (`Crypto_Market_Analytics.pbix`) is maintained locally and is not included in this repository. Runtime artifacts such as the virtual environment, logs, local database files, and credentials should not be committed.
+
+## Power BI dashboard screenshots
+
+The refreshed Power BI Desktop report contains three pages. The screenshot files are provided in `assets/dashboard/`:
+
+- `market-overview.jpg` — KPI cards, latest price, market trend, and cryptocurrency slicer.
+- `market-performance.jpg` — snapshot return comparison by cryptocurrency.
+- `data-quality.jpg` — collection interval quality, anomaly exploration, hourly price trends, and percentage movement.
+
+The screenshots show the local Desktop report after a manual refresh. The `.pbix` file remains local and is not included in this repository.
 
 ## Data model
 
@@ -134,6 +144,17 @@ These scripts should be run against the target database to reproduce the results
 
 **Hourly interpretation limit:** Because collection intervals contain gaps, `LAG()` compares with the previous available hourly group for that cryptocurrency. This is not necessarily a one-clock-hour return. The hourly aggregates summarize only observations actually collected.
 
+## Day 10 — End-to-end validation (November 16, 2026)
+
+- Verified the local Python-to-SQL Server connection to `CryptoAnalyticsDB`.
+- Ran the controlled two-cycle collection test: both cycles fetched five cryptocurrency records, cleaned all five records, and inserted five rows into SQL Server.
+- Confirmed the pipeline summary reported 2 successful cycles and 0 failed cycles.
+- Queried the source table and verified 235 total records at the time of validation, with 47 records for each of the five cryptocurrencies.
+- Verified that `vw_CryptoAnalytics`, `vw_CryptoIntervalQuality`, and `vw_CryptoHourlyAnalysis` returned data.
+- Refreshed the Power BI Desktop report and checked all three report pages.
+
+**Validation scope:** These results describe the local test run and database state observed on November 16, 2026; record counts and market values will change as new observations are collected. The local terminal showed a continuous-mode pipeline variant. The committed `pipeline.py` remains the reproducible two-cycle test configuration; use the committed version locally when reproducing this validation.
+
 ## Run locally
 
 1. Clone the repository.
@@ -203,6 +224,7 @@ CoinGecko API availability and rate limits apply. Prices and percentage changes 
 - [x] Day 7 reusable SQL analysis script.
 - [x] Day 8 hourly analysis view and Power BI integration.
 - [ ] Add selected dashboard screenshots to the repository.
+- [x] Complete end-to-end validation of Python ingestion, SQL storage/views, and Power BI manual refresh.
 - [ ] Collect a longer, more continuous history and reassess analytical stability.
 - [ ] Implement and document unattended orchestration and deployment.
 
