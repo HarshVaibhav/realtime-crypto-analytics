@@ -123,7 +123,7 @@ The incoming DataFrame is standardized before it is saved:
 
 ### 3. Store
 
-Cleaned observations are appended to SQL Server in the `CryptoAnalyticsDB` database. The pipeline checks that the intended destination table exists before inserting data, so it does not silently create a replacement table.
+Cleaned observations are written to SQL Server in the `CryptoAnalyticsDB` database. The shared database writer checks that the destination table exists and skips any `(coin, timestamp)` observation already stored. A unique index on those two columns provides a database-level safeguard against duplicate observations.
 
 ### 4. Analyze
 
@@ -151,6 +151,7 @@ realtime-crypto-analytics/
 ├── clean_data.py
 ├── fetch.py
 ├── db_connection.py
+├── database_writer.py
 ├── save_to_database.py
 ├── pipeline.py
 ├── test_environment.py
@@ -168,7 +169,8 @@ realtime-crypto-analytics/
 | `fetch.py` | Calls CoinGecko, retries temporary failures, validates the response, and returns a DataFrame |
 | `clean_data.py` | Cleans and validates the extracted records; includes synthetic-data and edge-case tests |
 | `db_connection.py` | Creates the SQLAlchemy connection to SQL Server |
-| `save_to_database.py` | Fetches, cleans, and appends a snapshot to the SQL table |
+| `database_writer.py` | Inserts only observations not already stored, while relying on the database unique index as a final safeguard |
+| `save_to_database.py` | Fetches, cleans, and appends a snapshot through the shared database writer |
 | `pipeline.py` | Coordinates extraction, cleaning, insertion, logging, and cycle summaries |
 | `test_environment.py` | Checks the local Python environment and required packages |
 | `requirements.txt` | Lists Python dependencies |
@@ -467,6 +469,7 @@ The following checks were recorded during local project development:
 - CoinGecko extraction was tested for five assets.
 - Request timeout, retry handling, empty-response handling, and malformed or partial API data were considered in the extraction logic.
 - The cleaning function was tested with 10,000 synthetic records. In that test, one invalid price and one duplicate observation were removed, leaving 9,998 rows.
+- The database writer checks existing `(coin, timestamp)` keys before inserting; the SQL table also has a unique index on those columns.
 - Database insertion failure and empty API response scenarios were tested through controlled test switches.
 - A successful two-cycle pipeline run was recorded with five records fetched, cleaned, and inserted in each cycle.
 - The SQL analytical views were checked in SQL Server.
