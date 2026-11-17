@@ -145,6 +145,9 @@ realtime-crypto-analytics/
 │   ├── market-performance.png
 │   └── data-quality.png
 ├── sql/
+│   ├── 01_crypto_analytics.sql
+│   ├── 02_hourly_analysis.sql
+│   ├── 03_interval_quality.sql
 │   ├── day_07_crypto_analysis.sql
 │   └── day_08_hourly_analysis.sql
 ├── clean_data.py
@@ -231,7 +234,7 @@ Collection timestamps are created in UTC. The pipeline converts timezone-aware U
 | `dbo.vw_CryptoIntervalQuality` | Classifies the time between consecutive observations for each cryptocurrency |
 | `dbo.vw_CryptoHourlyAnalysis` | Aggregates observations into hourly buckets and calculates movement from the previous available bucket |
 
-The Day 8 SQL file contains the reproducible `CREATE OR ALTER VIEW` definition for `dbo.vw_CryptoHourlyAnalysis`.
+The three numbered SQL files contain reproducible `CREATE OR ALTER VIEW` definitions for all analytical views. They use the same reliable collection interval of 240–360 seconds.
 
 ---
 
@@ -275,10 +278,15 @@ The view uses `LAG()` to compare each bucket with the previous available bucket 
 
 ### SQL scripts in this repository
 
-- [Day 7 SQL analysis queries](sql/day_07_crypto_analysis.sql) — latest price, snapshot returns, moving averages, high/low prices, latest 24-hour change ranking, and return volatility.
-- [Day 8 hourly analysis view](sql/day_08_hourly_analysis.sql) — hourly aggregation and previous-available-bucket price movement.
+Run the numbered view-creation scripts in order after creating the source table:
 
-The filenames retain their original development labels, but the project documentation is organized by the actual pipeline components and analytical purpose rather than a day-by-day learning diary.
+1. [01 — Crypto analytics](sql/01_crypto_analytics.sql) — snapshot returns, moving average, interval classification, reliable returns, volatility, Z-score, and exploratory anomaly status.
+2. [02 — Hourly analysis](sql/02_hourly_analysis.sql) — hourly average prices, observation counts, previous available hourly average, and price movement.
+3. [03 — Interval quality](sql/03_interval_quality.sql) — previous observation timestamps and consistent 240–360 second interval classification.
+
+Additional analytical query examples are available in [Day 7 SQL analysis queries](sql/day_07_crypto_analysis.sql). The earlier [Day 8 hourly analysis script](sql/day_08_hourly_analysis.sql) is retained as a development artifact; the numbered script above is the canonical view definition.
+
+The numbered scripts use `CREATE OR ALTER VIEW`, so they can create the views on a fresh database or update existing definitions. Run them against `CryptoAnalyticsDB` after `dbo.CryptoPriceHistory` exists.
 
 ---
 
@@ -435,7 +443,13 @@ The committed pipeline configuration uses `MAX_CYCLES = 2` and `INTERVAL_SECONDS
 
 ### 10. Create or refresh the SQL analytical views
 
-Open the SQL scripts in SSMS and run them against `CryptoAnalyticsDB`. Run the Day 8 script to create or alter `dbo.vw_CryptoHourlyAnalysis`. The other analytical views used by the report must also exist in the database.
+After creating `dbo.CryptoPriceHistory`, open these scripts in SSMS and run them in order against `CryptoAnalyticsDB`:
+
+1. `sql/01_crypto_analytics.sql`
+2. `sql/02_hourly_analysis.sql`
+3. `sql/03_interval_quality.sql`
+
+Each script creates or alters its view and includes a verification query. The three views use a consistent reliable interval threshold of 240–360 seconds.
 
 ### 11. Open and refresh the Power BI report
 
@@ -484,7 +498,10 @@ A local validation snapshot on November 16, 2026 recorded 235 rows in the source
 - [GitHub repository](https://github.com/HarshVaibhav/realtime-crypto-analytics)
 - [Power BI report](Crypto_Market_Analytics.pbix)
 - [SQL analysis queries](sql/day_07_crypto_analysis.sql)
-- [Hourly analysis SQL view](sql/day_08_hourly_analysis.sql)
+- [01 — Crypto analytics SQL view](sql/01_crypto_analytics.sql)
+- [02 — Hourly analysis SQL view](sql/02_hourly_analysis.sql)
+- [03 — Interval quality SQL view](sql/03_interval_quality.sql)
+- [Additional Day 7 SQL analysis queries](sql/day_07_crypto_analysis.sql)
 
 ## Disclaimer
 
