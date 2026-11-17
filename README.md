@@ -139,7 +139,6 @@ Power BI connects to the SQL Server data and analytical views. The report is org
 
 ```text
 realtime-crypto-analytics/
-├── assets/
 ├── crypto_dashboard_pngs/
 │   ├── market-overview.png
 │   ├── market-performance.png
@@ -148,8 +147,7 @@ realtime-crypto-analytics/
 │   ├── 01_crypto_analytics.sql
 │   ├── 02_hourly_analysis.sql
 │   ├── 03_interval_quality.sql
-│   ├── day_07_crypto_analysis.sql
-│   └── day_08_hourly_analysis.sql
+│   ├── crypto_analysis.sql
 ├── clean_data.py
 ├── fetch.py
 ├── db_connection.py
@@ -284,7 +282,7 @@ Run the numbered view-creation scripts in order after creating the source table:
 2. [02 — Hourly analysis](sql/02_hourly_analysis.sql) — hourly average prices, observation counts, previous available hourly average, and price movement.
 3. [03 — Interval quality](sql/03_interval_quality.sql) — previous observation timestamps and consistent 240–360 second interval classification.
 
-Additional analytical query examples are available in [Day 7 SQL analysis queries](sql/day_07_crypto_analysis.sql). The earlier [Day 8 hourly analysis script](sql/day_08_hourly_analysis.sql) is retained as a development artifact; the numbered script above is the canonical view definition.
+Additional analytical query examples are available in [SQL analysis practice queries](sql/crypto_analysis.sql). The older duplicate hourly view script has been removed. Use the numbered script above as the single canonical definition of `dbo.vw_CryptoHourlyAnalysis`.
 
 The numbered scripts use `CREATE OR ALTER VIEW`, so they can create the views on a fresh database or update existing definitions. Run them against `CryptoAnalyticsDB` after `dbo.CryptoPriceHistory` exists.
 
