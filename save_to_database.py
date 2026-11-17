@@ -36,11 +36,23 @@ def save_to_database():
         .dt.tz_localize(None)
     )
 
-    # 4. Append cleaned records to the historical table.
+    # 4. Append records only if the expected destination table exists.
     print("\nStep 3: Saving cleaned data to SQL Server...")
 
     try:
         with engine.begin() as connection:
+            table_exists = connection.dialect.has_table(
+                connection,
+                "CryptoPriceHistory",
+                schema="dbo",
+            )
+
+            if not table_exists:
+                raise RuntimeError(
+                    "Required table dbo.CryptoPriceHistory does not exist. "
+                    "Create the source table before running this loader."
+                )
+
             cleaned_df.to_sql(
                 name="CryptoPriceHistory",
                 con=connection,
