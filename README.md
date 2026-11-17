@@ -43,10 +43,10 @@ realtime-crypto-analytics/
 ├── .gitignore
 ├── README.md
 ├── assets/
-│   └── dashboard/
-│       ├── market-overview.png
-│       ├── market-performance.png
-│       └── data-quality.png
+├── crypto_dashboard_pngs/
+│   ├── market-overview.png
+│   ├── market-performance.png
+│   └── data-quality.png
 └── sql/
     ├── day_07_crypto_analysis.sql
     └── day_08_hourly_analysis.sql
@@ -60,15 +60,15 @@ The refreshed Power BI Desktop report contains three pages. Preview each dashboa
 
 ### Market Overview
 
-![Market Overview dashboard](assets/dashboard/market-overview.png)
+![Market Overview dashboard](crypto_dashboard_pngs/market-overview.png)
 
 ### Market Performance
 
-![Market Performance dashboard](assets/dashboard/market-performance.png)
+![Market Performance dashboard](crypto_dashboard_pngs/market-performance.png)
 
 ### Data Quality
 
-![Data Quality dashboard](assets/dashboard/data-quality.png)
+![Data Quality dashboard](crypto_dashboard_pngs/data-quality.png)
 
 The screenshots show the local Desktop report after a manual refresh. The `.pbix` file remains local and is not included in this repository.
 
