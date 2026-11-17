@@ -105,7 +105,7 @@ def fetch():
         print("No valid API data received.")
         return None
 
-    # Extract valid records; skip malformed individual coin entries.
+    # Extract valid records, skip malformed individual coin entries.
     rows = []
 
     for coin, values in data.items():
