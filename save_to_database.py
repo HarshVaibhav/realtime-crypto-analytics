@@ -3,6 +3,7 @@
 from fetch import fetch
 from clean_data import clean_data
 from db_connection import engine
+from database_writer import insert_snapshot
 
 
 def save_to_database():
@@ -41,28 +42,11 @@ def save_to_database():
 
     try:
         with engine.begin() as connection:
-            table_exists = connection.dialect.has_table(
-                connection,
-                "CryptoPriceHistory",
-                schema="dbo",
-            )
-
-            if not table_exists:
-                raise RuntimeError(
-                    "Required table dbo.CryptoPriceHistory does not exist. "
-                    "Create the source table before running this loader."
-                )
-
-            cleaned_df.to_sql(
-                name="CryptoPriceHistory",
-                con=connection,
-                schema="dbo",
-                if_exists="append",
-                index=False,
-            )
+            inserted, skipped = insert_snapshot(connection, cleaned_df)
 
         print("\nDatabase insertion successful!")
-        print("Records inserted:", len(cleaned_df))
+        print("New records inserted:", inserted)
+        print("Existing observations skipped:", skipped)
 
     except Exception as error:
         print("\nDatabase insertion failed:")
