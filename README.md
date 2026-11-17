@@ -41,6 +41,11 @@ realtime-crypto-analytics/
 ├── requirements.txt
 ├── .gitignore
 ├── README.md
+├── assets/
+│   └── dashboard/
+│       ├── market-overview.png
+│       ├── market-performance.png
+│       └── data-quality.png
 └── sql/
     ├── day_07_crypto_analysis.sql
     └── day_08_hourly_analysis.sql
@@ -52,9 +57,9 @@ The Power BI report (`Crypto_Market_Analytics.pbix`) is maintained locally and i
 
 The refreshed Power BI Desktop report contains three pages. The screenshot files are provided in `assets/dashboard/`:
 
-- `market-overview.jpg` — KPI cards, latest price, market trend, and cryptocurrency slicer.
-- `market-performance.jpg` — snapshot return comparison by cryptocurrency.
-- `data-quality.jpg` — collection interval quality, anomaly exploration, hourly price trends, and percentage movement.
+- `market-overview.png` — KPI cards, latest price, market trend, and cryptocurrency slicer.
+- `market-performance.png` — snapshot return comparison by cryptocurrency.
+- `data-quality.png` — collection interval quality, anomaly exploration, hourly price trends, and percentage movement.
 
 The screenshots show the local Desktop report after a manual refresh. The `.pbix` file remains local and is not included in this repository.
 
@@ -223,7 +228,7 @@ CoinGecko API availability and rate limits apply. Prices and percentage changes 
 - [x] Power BI Desktop dashboard and manual refresh validation.
 - [x] Day 7 reusable SQL analysis script.
 - [x] Day 8 hourly analysis view and Power BI integration.
-- [ ] Add selected dashboard screenshots to the repository.
+- [x] Add high-quality Power BI dashboard screenshots to the repository.
 - [x] Complete end-to-end validation of Python ingestion, SQL storage/views, and Power BI manual refresh.
 - [ ] Collect a longer, more continuous history and reassess analytical stability.
 - [ ] Implement and document unattended orchestration and deployment.
