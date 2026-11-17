@@ -18,6 +18,7 @@ from pathlib import Path
 from fetch import fetch
 from clean_data import clean_data
 from db_connection import engine
+from database_writer import insert_snapshot
 
 
 # Configuration
@@ -88,33 +89,16 @@ def run_pipeline():
                     print("TEST MODE: Simulating database failure.")
                     raise RuntimeError("Simulated database failure")
 
-                # Check that the intended table exists. This prevents
-                # pandas to_sql from creating a new table unintentionally.
-                table_exists = connection.dialect.has_table(
-                    connection,
-                    TABLE_NAME,
-                    schema="dbo",
-                )
-
-                if not table_exists:
-                    raise RuntimeError(
-                        f"Required table dbo.{TABLE_NAME} does not exist."
-                    )
-
-                cleaned_df.to_sql(
-                    name=TABLE_NAME,
-                    con=connection,
-                    schema="dbo",
-                    if_exists="append",
-                    index=False,
-                )
+                inserted, skipped = insert_snapshot(connection, cleaned_df)
 
             logger.info(
-                "Successfully inserted %s records.",
-                len(cleaned_df),
+                "Inserted %s records; skipped %s existing observations.",
+                inserted,
+                skipped,
             )
             print("Database insertion successful!")
-            print("Records inserted:", len(cleaned_df))
+            print("New records inserted:", inserted)
+            print("Existing observations skipped:", skipped)
             return True
 
         except Exception:
