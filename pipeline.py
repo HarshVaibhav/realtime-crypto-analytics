@@ -29,8 +29,6 @@ MAX_CYCLES = 2
 # True = deliberately simulate a database failure.
 TEST_DATABASE_FAILURE = False
 
-TABLE_NAME = "CryptoPriceHistory"
-
 
 # Log file is created beside this script.
 logging.basicConfig(
