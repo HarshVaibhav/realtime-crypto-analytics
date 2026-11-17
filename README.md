@@ -55,11 +55,19 @@ The Power BI report (`Crypto_Market_Analytics.pbix`) is maintained locally and i
 
 ## Power BI dashboard screenshots
 
-The refreshed Power BI Desktop report contains three pages. The screenshot files are provided in `assets/dashboard/`:
+The refreshed Power BI Desktop report contains three pages. Preview each dashboard page below:
 
-- `market-overview.png` — KPI cards, latest price, market trend, and cryptocurrency slicer.
-- `market-performance.png` — snapshot return comparison by cryptocurrency.
-- `data-quality.png` — collection interval quality, anomaly exploration, hourly price trends, and percentage movement.
+### Market Overview
+
+![Market Overview dashboard](assets/dashboard/market-overview.png)
+
+### Market Performance
+
+![Market Performance dashboard](assets/dashboard/market-performance.png)
+
+### Data Quality
+
+![Data Quality dashboard](assets/dashboard/data-quality.png)
 
 The screenshots show the local Desktop report after a manual refresh. The `.pbix` file remains local and is not included in this repository.
 
