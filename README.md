@@ -147,7 +147,7 @@ realtime-crypto-analytics/
 │   ├── 01_crypto_analytics.sql
 │   ├── 02_hourly_analysis.sql
 │   ├── 03_interval_quality.sql
-│   ├── crypto_analysis.sql
+│   └── crypto_analysis.sql
 ├── clean_data.py
 ├── fetch.py
 ├── db_connection.py
@@ -265,8 +265,6 @@ This makes it possible to examine whether the data is arriving at reasonably con
 The hourly view groups records by cryptocurrency and hour. For each bucket it calculates:
 
 - Average price.
-- Minimum price.
-- Maximum price.
 - Number of observations.
 - Previous available hourly average.
 - Absolute price difference.
@@ -495,11 +493,11 @@ A local validation snapshot on November 16, 2026 recorded 235 rows in the source
 
 - [GitHub repository](https://github.com/HarshVaibhav/realtime-crypto-analytics)
 - [Power BI report](Crypto_Market_Analytics.pbix)
-- [SQL analysis queries](sql/day_07_crypto_analysis.sql)
+- [SQL analysis queries](sql/crypto_analysis.sql)
 - [01 — Crypto analytics SQL view](sql/01_crypto_analytics.sql)
 - [02 — Hourly analysis SQL view](sql/02_hourly_analysis.sql)
 - [03 — Interval quality SQL view](sql/03_interval_quality.sql)
-- [Additional Day 7 SQL analysis queries](sql/day_07_crypto_analysis.sql)
+- [Additional SQL analysis practice queries](sql/crypto_analysis.sql)
 
 ## Disclaimer
 
