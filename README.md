@@ -155,6 +155,7 @@ realtime-crypto-analytics/
 ├── pipeline.py
 ├── test_environment.py
 ├── requirements.txt
+├── .env.example
 ├── .gitignore
 ├── Crypto_Market_Analytics.pbix
 └── README.md
@@ -400,7 +401,13 @@ python -m pip install -r requirements.txt
 
 Create a database named `CryptoAnalyticsDB` and create the `dbo.CryptoPriceHistory` table with the schema described in the [Database design](#database-design) section.
 
-Update the SQL Server instance and connection settings in `db_connection.py` to match your environment. The checked-in connection configuration may be specific to the original development machine. Do not add passwords, API keys, or other secrets to Git.
+Copy the example configuration and edit your local settings:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Open `.env` and set `SQL_SERVER` to your SQL Server instance (for example, `localhost\\SQLEXPRESS`). Keep `SQL_TRUSTED_CONNECTION=yes` for Windows Authentication. If you use SQL Server Authentication, set it to `no` and provide `SQL_USERNAME` and `SQL_PASSWORD`. The connection module reads these settings from `.env`; the real `.env` file is ignored by Git. Never commit credentials.
 
 ### 5. Test the environment and API extraction
 
