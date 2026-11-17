@@ -1,3 +1,4 @@
+
 # Real-Time Crypto Analytics Pipeline
 
 An end-to-end analytics project that collects cryptocurrency market data from CoinGecko, stores timestamped observations in Microsoft SQL Server, processes the data with Python and pandas, and presents market and data-collection insights in a Power BI Desktop dashboard.
