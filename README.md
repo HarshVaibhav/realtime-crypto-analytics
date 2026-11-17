@@ -407,7 +407,7 @@ Copy the example configuration and edit your local settings:
 Copy-Item .env.example .env
 ```
 
-Open `.env` and set `SQL_SERVER` to your SQL Server instance (for example, `localhost\\SQLEXPRESS`). Keep `SQL_TRUSTED_CONNECTION=yes` for Windows Authentication. If you use SQL Server Authentication, set it to `no` and provide `SQL_USERNAME` and `SQL_PASSWORD`. The connection module reads these settings from `.env`; the real `.env` file is ignored by Git. Never commit credentials.
+Open `.env` and set `SQL_SERVER` to your SQL Server instance (for example, `localhost\SQLEXPRESS`). Keep `SQL_TRUSTED_CONNECTION=yes` for Windows Authentication. If you use SQL Server Authentication, set it to `no` and provide `SQL_USERNAME` and `SQL_PASSWORD`. The connection module reads these settings from `.env`; the real `.env` file is ignored by Git. Never commit credentials.
 
 ### 5. Test the environment and API extraction
 
