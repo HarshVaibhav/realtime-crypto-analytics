@@ -12,6 +12,7 @@ Features:
 """
 
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -22,8 +23,9 @@ from database_writer import insert_snapshot
 
 
 # Configuration
-INTERVAL_SECONDS = 300
-MAX_CYCLES = 2
+INTERVAL_SECONDS = max(1, int(os.getenv("INTERVAL_SECONDS", "300")))
+# 0 means run until interrupted; set MAX_CYCLES=2 for a short test.
+MAX_CYCLES = max(0, int(os.getenv("MAX_CYCLES", "0")))
 
 # False = normal SQL Server insertion.
 # True = deliberately simulate a database failure.
@@ -116,7 +118,7 @@ if __name__ == "__main__":
     print("\nCrypto Analytics Pipeline Started")
     print("Executing file:", Path(__file__).resolve())
     print("Collection interval:", INTERVAL_SECONDS, "seconds")
-    print("Maximum test cycles:", MAX_CYCLES)
+    print("Maximum cycles:", MAX_CYCLES if MAX_CYCLES else "unlimited (Ctrl+C to stop)")
     print(
         "Database failure simulation:",
         "ENABLED" if TEST_DATABASE_FAILURE else "DISABLED",
@@ -132,7 +134,9 @@ if __name__ == "__main__":
     completed_cycles = 0
 
     try:
-        for cycle in range(1, MAX_CYCLES + 1):
+        cycle = 0
+        while MAX_CYCLES == 0 or cycle < MAX_CYCLES:
+            cycle += 1
             cycle_start = time.monotonic()
 
             print(f"\nStarting Cycle {cycle} of {MAX_CYCLES}")
@@ -145,7 +149,7 @@ if __name__ == "__main__":
                 failed_cycles += 1
 
             # Keep five minutes between cycle start times.
-            if cycle < MAX_CYCLES:
+            if MAX_CYCLES == 0 or cycle < MAX_CYCLES:
                 elapsed = time.monotonic() - cycle_start
                 wait_time = max(0, INTERVAL_SECONDS - elapsed)
 
