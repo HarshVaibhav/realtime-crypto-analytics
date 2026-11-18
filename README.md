@@ -144,6 +144,7 @@ realtime-crypto-analytics/
 │   ├── market-performance.png
 │   └── data-quality.png
 ├── sql/
+│   ├── 00_setup_database.sql
 │   ├── 01_crypto_analytics.sql
 │   ├── 02_hourly_analysis.sql
 │   ├── 03_interval_quality.sql
@@ -155,6 +156,8 @@ realtime-crypto-analytics/
 ├── save_to_database.py
 ├── pipeline.py
 ├── test_environment.py
+├── tests/
+│   └── test_clean_data.py
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
@@ -172,7 +175,8 @@ realtime-crypto-analytics/
 | `database_writer.py` | Inserts only observations not already stored, while relying on the database unique index as a final safeguard |
 | `save_to_database.py` | Fetches, cleans, and appends a snapshot through the shared database writer |
 | `pipeline.py` | Coordinates extraction, cleaning, insertion, logging, and cycle summaries |
-| `test_environment.py` | Checks the local Python environment and required packages |
+| `test_environment.py` | Checks the local Python environment, required packages, and ODBC driver |
+| `tests/test_clean_data.py` | Repeatable unit tests for cleaning and validation edge cases |
 | `requirements.txt` | Lists Python dependencies |
 
 The `crypto_dashboard_pngs/` directory contains the dashboard screenshots used in this README. The Power BI report file is included in the repository as `Crypto_Market_Analytics.pbix`.
@@ -401,7 +405,7 @@ python -m pip install -r requirements.txt
 
 ### 4. Configure SQL Server
 
-Create a database named `CryptoAnalyticsDB` and create the `dbo.CryptoPriceHistory` table with the schema described in the [Database design](#database-design) section.
+Run `sql/00_setup_database.sql` in SSMS to create `CryptoAnalyticsDB`, the `dbo.CryptoPriceHistory` source table, and the unique index on `(coin, timestamp)`. The script leaves an existing table and its data unchanged. If the unique index cannot be created because duplicate keys already exist, resolve those duplicates before continuing.
 
 Copy the example configuration and edit your local settings:
 
@@ -418,7 +422,15 @@ python test_environment.py
 python fetch.py
 ```
 
-### 6. Test data cleaning
+### 6. Run repeatable unit tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The unit tests cover invalid and infinite prices, invalid timestamps, duplicate keys, optional missing API changes, and missing required columns.
+
+### 7. Test data cleaning
 
 ```bash
 python clean_data.py
@@ -426,19 +438,19 @@ python clean_data.py
 
 The script runs synthetic-data and edge-case tests by default. The live API cleaning test is available in the file as a separate function.
 
-### 7. Test the database connection
+### 8. Test the database connection
 
 ```bash
 python db_connection.py
 ```
 
-### 8. Insert one collection snapshot
+### 9. Insert one collection snapshot
 
 ```bash
 python save_to_database.py
 ```
 
-### 9. Run the pipeline
+### 10. Run the pipeline
 
 ```bash
 python pipeline.py
@@ -446,9 +458,9 @@ python pipeline.py
 
 The committed pipeline configuration uses `MAX_CYCLES = 2` and `INTERVAL_SECONDS = 300`. It performs two controlled collection cycles with a five-minute interval between cycle starts. It is not configured as an always-on service.
 
-### 10. Create or refresh the SQL analytical views
+### 11. Create or refresh the SQL analytical views
 
-After creating `dbo.CryptoPriceHistory`, open these scripts in SSMS and run them in order against `CryptoAnalyticsDB`:
+After running `sql/00_setup_database.sql`, open these scripts in SSMS and run them in order against `CryptoAnalyticsDB`:
 
 1. `sql/01_crypto_analytics.sql`
 2. `sql/02_hourly_analysis.sql`
@@ -456,7 +468,7 @@ After creating `dbo.CryptoPriceHistory`, open these scripts in SSMS and run them
 
 Each script creates or alters its view and includes a verification query. The three views use a consistent reliable interval threshold of 240–360 seconds.
 
-### 11. Open and refresh the Power BI report
+### 12. Open and refresh the Power BI report
 
 Open `Crypto_Market_Analytics.pbix` in Power BI Desktop. If the report is opened on another machine, update its SQL Server data source settings, ensure the analytical views are available, and perform a manual refresh.
 
@@ -468,7 +480,8 @@ The following checks were recorded during local project development:
 
 - CoinGecko extraction was tested for five assets.
 - Request timeout, retry handling, empty-response handling, and malformed or partial API data were considered in the extraction logic.
-- The cleaning function was tested with 10,000 synthetic records. In that test, one invalid price and one duplicate observation were removed, leaving 9,998 rows.
+- The cleaning function was exercised with 10,000 synthetic records. In that test, one invalid price and one duplicate observation were removed, leaving 9,998 rows.
+- A repeatable Python unit-test suite covers key cleaning and validation edge cases; run it with `python -m unittest discover -s tests -v`.
 - The database writer checks existing `(coin, timestamp)` keys before inserting; the SQL table also has a unique index on those columns.
 - Database insertion failure and empty API response scenarios were tested through controlled test switches.
 - A successful two-cycle pipeline run was recorded with five records fetched, cleaned, and inserted in each cycle.
@@ -504,6 +517,7 @@ A local validation snapshot on November 16, 2026 recorded 235 rows in the source
 - [GitHub repository](https://github.com/HarshVaibhav/realtime-crypto-analytics)
 - [Power BI report](Crypto_Market_Analytics.pbix)
 - [SQL analysis queries](sql/crypto_analysis.sql)
+- [00 — Database setup](sql/00_setup_database.sql)
 - [01 — Crypto analytics SQL view](sql/01_crypto_analytics.sql)
 - [02 — Hourly analysis SQL view](sql/02_hourly_analysis.sql)
 - [03 — Interval quality SQL view](sql/03_interval_quality.sql)
