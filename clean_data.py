@@ -7,7 +7,7 @@ import pandas as pd
 
 from fetch import fetch
 
-REQUIRED_COLUMNS = {"coin", "price", "chg_24h", "timestamp"}
+REQUIRED_COLUMNS = {"coin", "price", "timestamp"}
 
 
 def clean_data(dataframe):
@@ -33,7 +33,7 @@ def clean_data(dataframe):
         dataframe["coin"].astype("string").str.strip().str.lower()
     )
     dataframe["price"] = pd.to_numeric(dataframe["price"], errors="coerce")
-    dataframe["chg_24h"] = pd.to_numeric(dataframe["chg_24h"], errors="coerce")
+    if "chg_24h" not in dataframe.columns:\n        dataframe["chg_24h"] = np.nan\n    dataframe["chg_24h"] = pd.to_numeric(dataframe["chg_24h"], errors="coerce")
     dataframe["timestamp"] = pd.to_datetime(
         dataframe["timestamp"], errors="coerce", utc=True
     )
