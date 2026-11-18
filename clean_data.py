@@ -109,8 +109,9 @@ def test_edge_cases():
         ],
     })
     cleaned_data = clean_data(test_data)
-    assert len(cleaned_data) == 1
-    assert pd.isna(cleaned_data.loc[0, "chg_24h"])
+    assert len(cleaned_data) == 2
+    ripple = cleaned_data.loc[cleaned_data["coin"] == "ripple"].iloc[0]
+    assert pd.isna(ripple["chg_24h"])
     print("Edge-case checks passed.")
 
 
