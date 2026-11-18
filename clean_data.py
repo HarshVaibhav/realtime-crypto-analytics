@@ -33,7 +33,9 @@ def clean_data(dataframe):
         dataframe["coin"].astype("string").str.strip().str.lower()
     )
     dataframe["price"] = pd.to_numeric(dataframe["price"], errors="coerce")
-    if "chg_24h" not in dataframe.columns:\n        dataframe["chg_24h"] = np.nan\n    dataframe["chg_24h"] = pd.to_numeric(dataframe["chg_24h"], errors="coerce")
+    if "chg_24h" not in dataframe.columns:
+        dataframe["chg_24h"] = np.nan
+    dataframe["chg_24h"] = pd.to_numeric(dataframe["chg_24h"], errors="coerce")
     dataframe["timestamp"] = pd.to_datetime(
         dataframe["timestamp"], errors="coerce", utc=True
     )
