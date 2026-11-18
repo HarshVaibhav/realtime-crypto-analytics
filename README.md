@@ -19,6 +19,7 @@ The project demonstrates a practical analytics workflow across **Python, SQL Ser
 - [Data collection and preparation](#data-collection-and-preparation)
 - [Database design](#database-design)
 - [SQL analysis](#sql-analysis)
+- [Findings and insights](#findings-and-insights)
 - [Power BI dashboard](#power-bi-dashboard)
 - [Key analytical definitions](#key-analytical-definitions)
 - [How to run the project](#how-to-run-the-project)
@@ -143,11 +144,18 @@ realtime-crypto-analytics/
 │   ├── market-overview.png
 │   ├── market-performance.png
 │   └── data-quality.png
+├── findings/
+│   └── key_findings.md
 ├── sql/
+│   ├── 00_create_database.sql
 │   ├── 01_crypto_analytics.sql
 │   ├── 02_hourly_analysis.sql
 │   ├── 03_interval_quality.sql
+│   ├── 04_findings_summary.sql
 │   └── crypto_analysis.sql
+├── tests/
+│   ├── test_clean_data.py
+│   └── test_fetch.py
 ├── clean_data.py
 ├── fetch.py
 ├── db_connection.py
@@ -155,7 +163,9 @@ realtime-crypto-analytics/
 ├── save_to_database.py
 ├── pipeline.py
 ├── test_environment.py
+├── pytest.ini
 ├── requirements.txt
+├── requirements-dev.txt
 ├── .env.example
 ├── .gitignore
 ├── Crypto_Market_Analytics.pbix
@@ -167,7 +177,7 @@ realtime-crypto-analytics/
 | File | Responsibility |
 |---|---|
 | `fetch.py` | Calls CoinGecko, retries temporary failures, validates the response, and returns a DataFrame |
-| `clean_data.py` | Cleans and validates the extracted records; includes synthetic-data and edge-case tests |
+| `clean_data.py` | Cleans and validates the extracted records; automated edge-case tests live in `tests/` |
 | `db_connection.py` | Creates the SQLAlchemy connection to SQL Server |
 | `database_writer.py` | Inserts only observations not already stored, while relying on the database unique index as a final safeguard |
 | `save_to_database.py` | Fetches, cleans, and appends a snapshot through the shared database writer |
@@ -235,7 +245,7 @@ Collection timestamps are created in UTC. The pipeline converts timezone-aware U
 | `dbo.vw_CryptoIntervalQuality` | Classifies the time between consecutive observations for each cryptocurrency |
 | `dbo.vw_CryptoHourlyAnalysis` | Aggregates observations into hourly buckets and calculates movement from the previous available bucket |
 
-The three numbered SQL files contain reproducible `CREATE OR ALTER VIEW` definitions for all analytical views. They use the same reliable collection interval of 240–360 seconds.
+The numbered SQL view files contain reproducible `CREATE OR ALTER VIEW` definitions for all analytical views. They use the same reliable collection interval of 240–360 seconds.
 
 ---
 
@@ -277,15 +287,36 @@ The view uses `LAG()` to compare each bucket with the previous available bucket 
 
 ### SQL scripts in this repository
 
-Run the numbered view-creation scripts in order after creating the source table:
+Run `00_create_database.sql` first, then run the numbered view-creation scripts in order:
 
-1. [01 — Crypto analytics](sql/01_crypto_analytics.sql) — snapshot returns, moving average, interval classification, reliable returns, volatility, Z-score, and exploratory anomaly status.
-2. [02 — Hourly analysis](sql/02_hourly_analysis.sql) — hourly average prices, observation counts, previous available hourly average, and price movement.
-3. [03 — Interval quality](sql/03_interval_quality.sql) — previous observation timestamps and consistent 240–360 second interval classification.
+1. [00 — Database bootstrap](sql/00_create_database.sql) — creates the database, source table, and supporting indexes without deleting existing data.
+2. [01 — Crypto analytics](sql/01_crypto_analytics.sql) — snapshot returns, moving average, interval classification, reliable returns, volatility, Z-score, and exploratory anomaly status.
+3. [02 — Hourly analysis](sql/02_hourly_analysis.sql) — hourly average prices, observation counts, previous available hourly average, and price movement.
+4. [03 — Interval quality](sql/03_interval_quality.sql) — previous observation timestamps and consistent 240–360 second interval classification.
+5. [04 — Findings summary](sql/04_findings_summary.sql) — read-only result sets for coverage, observed movement, collection quality, return variability, potential anomalies, and latest API changes.
 
 Additional analytical query examples are available in [SQL analysis practice queries](sql/crypto_analysis.sql). The older duplicate hourly view script has been removed. Use the numbered script above as the single canonical definition of `dbo.vw_CryptoHourlyAnalysis`.
 
 The numbered scripts use `CREATE OR ALTER VIEW`, so they can create the views on a fresh database or update existing definitions. Run them against `CryptoAnalyticsDB` after `dbo.CryptoPriceHistory` exists.
+
+---
+
+## Findings and insights
+
+The project includes a dedicated [findings evidence log](findings/key_findings.md) and a reproducible [SQL findings summary](sql/04_findings_summary.sql).
+
+The findings are intentionally data-driven. The evidence log currently marks numerical conclusions as **pending local SQL execution** rather than presenting unverified market claims. Run the summary script against the current `CryptoAnalyticsDB`, record the query date and observation window, then populate the evidence log from the returned result sets.
+
+The analysis is designed to answer:
+
+- How much historical coverage is available for each cryptocurrency?
+- What was the observed price change between the first and latest stored observations?
+- Which cryptocurrency had the most consistent collection intervals?
+- How did reliable snapshot-return averages and variability compare?
+- Were any returns flagged by the rolling, prior-observation anomaly baseline?
+- What did the latest CoinGecko response report for its 24-hour change field?
+
+Interpret findings carefully: snapshot returns are not automatically five-minute returns, the API's 24-hour change is a separate measure, and a statistical anomaly flag is not proof of a market event or data error. The findings are descriptive, not predictive or investment advice.
 
 ---
 
@@ -401,7 +432,7 @@ python -m pip install -r requirements.txt
 
 ### 4. Configure SQL Server
 
-Create a database named `CryptoAnalyticsDB` and create the `dbo.CryptoPriceHistory` table with the schema described in the [Database design](#database-design) section.
+Run `sql/00_create_database.sql` in SSMS to create the database, source table, unique index, and supporting index. The script is safe to rerun and will stop with an explanatory error if existing duplicate coin/timestamp pairs prevent creation of the unique index. It does not delete existing data.
 
 Copy the example configuration and edit your local settings:
 
@@ -482,7 +513,7 @@ A local validation snapshot on November 16, 2026 recorded 235 rows in the source
 ## Limitations and future improvements
 
 - **Polling, not streaming:** The project uses periodic API requests. It does not receive every market tick.
-- **Finite committed run:** The checked-in pipeline is configured for two cycles. A production scheduler or continuously running service has not been implemented.
+- **Polling process:** The pipeline can run continuously when `MAX_CYCLES=0` or for a bounded number of cycles when a positive value is set. A production scheduler or managed service has not been implemented.
 - **Collection gaps:** Missing or delayed observations affect snapshot and hourly comparisons.
 - **Previous available bucket:** Hourly `LAG()` comparisons may span more than one clock hour when data is missing.
 - **Exploratory statistics:** Volatility and anomaly flags should be interpreted cautiously until a longer and more consistent history is available.
@@ -507,8 +538,19 @@ A local validation snapshot on November 16, 2026 recorded 235 rows in the source
 - [01 — Crypto analytics SQL view](sql/01_crypto_analytics.sql)
 - [02 — Hourly analysis SQL view](sql/02_hourly_analysis.sql)
 - [03 — Interval quality SQL view](sql/03_interval_quality.sql)
+- [04 — Findings summary SQL](sql/04_findings_summary.sql)
+- [Findings evidence log](findings/key_findings.md)
 - [Additional SQL analysis practice queries](sql/crypto_analysis.sql)
 
 ## Disclaimer
 
 This project is for educational and analytical purposes only. It does not provide trading signals, investment advice, or recommendations to buy or sell cryptocurrency.
+
+
+## Maintenance notes
+
+- The analytics view exposes 3-, 5-, and 10-observation moving averages. Observation windows are not fixed clock-time windows when collection intervals vary.
+- The anomaly baseline in the current analytics view uses up to 20 preceding reliable returns and requires at least 10 prior returns. It does not use future observations to score the current row.
+- Set `MAX_CYCLES=0` to run the polling loop continuously, or set a positive integer for a finite run. Set `INTERVAL_SECONDS` to change the target delay between cycle start times.
+- Install `requirements-dev.txt` and run `python -m pytest` for automated cleaning and API parsing tests.
+- SQL Server execution, live API behaviour, and Power BI refresh still need to be validated in the target local environment; repository changes alone cannot verify a local SQL Server instance or PBIX data source.
