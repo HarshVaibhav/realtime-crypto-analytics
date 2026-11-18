@@ -19,6 +19,7 @@ The project demonstrates a practical analytics workflow across **Python, SQL Ser
 - [Data collection and preparation](#data-collection-and-preparation)
 - [Database design](#database-design)
 - [SQL analysis](#sql-analysis)
+- [Findings and insights](#findings-and-insights)
 - [Power BI dashboard](#power-bi-dashboard)
 - [Key analytical definitions](#key-analytical-definitions)
 - [How to run the project](#how-to-run-the-project)
@@ -143,11 +144,18 @@ realtime-crypto-analytics/
 │   ├── market-overview.png
 │   ├── market-performance.png
 │   └── data-quality.png
+├── findings/
+│   └── key_findings.md
 ├── sql/
+│   ├── 00_create_database.sql
 │   ├── 01_crypto_analytics.sql
 │   ├── 02_hourly_analysis.sql
 │   ├── 03_interval_quality.sql
+│   ├── 04_findings_summary.sql
 │   └── crypto_analysis.sql
+├── tests/
+│   ├── test_clean_data.py
+│   └── test_fetch.py
 ├── clean_data.py
 ├── fetch.py
 ├── db_connection.py
@@ -155,7 +163,9 @@ realtime-crypto-analytics/
 ├── save_to_database.py
 ├── pipeline.py
 ├── test_environment.py
+├── pytest.ini
 ├── requirements.txt
+├── requirements-dev.txt
 ├── .env.example
 ├── .gitignore
 ├── Crypto_Market_Analytics.pbix
@@ -279,13 +289,33 @@ The view uses `LAG()` to compare each bucket with the previous available bucket 
 
 Run `00_create_database.sql` first, then run the numbered view-creation scripts in order:
 
-1. [01 — Crypto analytics](sql/01_crypto_analytics.sql) — snapshot returns, moving average, interval classification, reliable returns, volatility, Z-score, and exploratory anomaly status.
-2. [02 — Hourly analysis](sql/02_hourly_analysis.sql) — hourly average prices, observation counts, previous available hourly average, and price movement.
-3. [03 — Interval quality](sql/03_interval_quality.sql) — previous observation timestamps and consistent 240–360 second interval classification.
+1. [00 — Database bootstrap](sql/00_create_database.sql) — creates the database, source table, and supporting indexes without deleting existing data.
+2. [01 — Crypto analytics](sql/01_crypto_analytics.sql) — snapshot returns, moving average, interval classification, reliable returns, volatility, Z-score, and exploratory anomaly status.
+3. [02 — Hourly analysis](sql/02_hourly_analysis.sql) — hourly average prices, observation counts, previous available hourly average, and price movement.
+4. [03 — Interval quality](sql/03_interval_quality.sql) — previous observation timestamps and consistent 240–360 second interval classification.
 
 Additional analytical query examples are available in [SQL analysis practice queries](sql/crypto_analysis.sql). The older duplicate hourly view script has been removed. Use the numbered script above as the single canonical definition of `dbo.vw_CryptoHourlyAnalysis`.
 
 The numbered scripts use `CREATE OR ALTER VIEW`, so they can create the views on a fresh database or update existing definitions. Run them against `CryptoAnalyticsDB` after `dbo.CryptoPriceHistory` exists.
+
+---
+
+## Findings and insights
+
+The project includes a dedicated [findings evidence log](findings/key_findings.md) and a reproducible [SQL findings summary](sql/04_findings_summary.sql).
+
+The findings are intentionally data-driven. The evidence log currently marks numerical conclusions as **pending local SQL execution** rather than presenting unverified market claims. Run the summary script against the current `CryptoAnalyticsDB`, record the query date and observation window, then populate the evidence log from the returned result sets.
+
+The analysis is designed to answer:
+
+- How much historical coverage is available for each cryptocurrency?
+- What was the observed price change between the first and latest stored observations?
+- Which cryptocurrency had the most consistent collection intervals?
+- How did reliable snapshot-return averages and variability compare?
+- Were any returns flagged by the rolling, prior-observation anomaly baseline?
+- What did the latest CoinGecko response report for its 24-hour change field?
+
+Interpret findings carefully: snapshot returns are not automatically five-minute returns, the API's 24-hour change is a separate measure, and a statistical anomaly flag is not proof of a market event or data error. The findings are descriptive, not predictive or investment advice.
 
 ---
 
@@ -482,7 +512,7 @@ A local validation snapshot on November 16, 2026 recorded 235 rows in the source
 ## Limitations and future improvements
 
 - **Polling, not streaming:** The project uses periodic API requests. It does not receive every market tick.
-- **Finite committed run:** The checked-in pipeline is configured for two cycles. A production scheduler or continuously running service has not been implemented.
+- **Polling process:** The pipeline can run continuously when `MAX_CYCLES=0` or for a bounded number of cycles when a positive value is set. A production scheduler or managed service has not been implemented.
 - **Collection gaps:** Missing or delayed observations affect snapshot and hourly comparisons.
 - **Previous available bucket:** Hourly `LAG()` comparisons may span more than one clock hour when data is missing.
 - **Exploratory statistics:** Volatility and anomaly flags should be interpreted cautiously until a longer and more consistent history is available.
@@ -507,6 +537,8 @@ A local validation snapshot on November 16, 2026 recorded 235 rows in the source
 - [01 — Crypto analytics SQL view](sql/01_crypto_analytics.sql)
 - [02 — Hourly analysis SQL view](sql/02_hourly_analysis.sql)
 - [03 — Interval quality SQL view](sql/03_interval_quality.sql)
+- [04 — Findings summary SQL](sql/04_findings_summary.sql)
+- [Findings evidence log](findings/key_findings.md)
 - [Additional SQL analysis practice queries](sql/crypto_analysis.sql)
 
 ## Disclaimer
