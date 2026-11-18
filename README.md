@@ -177,7 +177,7 @@ realtime-crypto-analytics/
 | File | Responsibility |
 |---|---|
 | `fetch.py` | Calls CoinGecko, retries temporary failures, validates the response, and returns a DataFrame |
-| `clean_data.py` | Cleans and validates the extracted records; includes synthetic-data and edge-case tests |
+| `clean_data.py` | Cleans and validates the extracted records; automated edge-case tests live in `tests/` |
 | `db_connection.py` | Creates the SQLAlchemy connection to SQL Server |
 | `database_writer.py` | Inserts only observations not already stored, while relying on the database unique index as a final safeguard |
 | `save_to_database.py` | Fetches, cleans, and appends a snapshot through the shared database writer |
@@ -293,6 +293,7 @@ Run `00_create_database.sql` first, then run the numbered view-creation scripts 
 2. [01 — Crypto analytics](sql/01_crypto_analytics.sql) — snapshot returns, moving average, interval classification, reliable returns, volatility, Z-score, and exploratory anomaly status.
 3. [02 — Hourly analysis](sql/02_hourly_analysis.sql) — hourly average prices, observation counts, previous available hourly average, and price movement.
 4. [03 — Interval quality](sql/03_interval_quality.sql) — previous observation timestamps and consistent 240–360 second interval classification.
+5. [04 — Findings summary](sql/04_findings_summary.sql) — read-only result sets for coverage, observed movement, collection quality, return variability, potential anomalies, and latest API changes.
 
 Additional analytical query examples are available in [SQL analysis practice queries](sql/crypto_analysis.sql). The older duplicate hourly view script has been removed. Use the numbered script above as the single canonical definition of `dbo.vw_CryptoHourlyAnalysis`.
 
