@@ -13,6 +13,16 @@ def clean_data(df):
     """Validate and clean a cryptocurrency snapshot DataFrame."""
 
     # Work on a copy; preserve the original DataFrame.
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("clean_data expects a pandas DataFrame.")
+
+    required_columns = {"coin", "price", "chg_24h", "timestamp"}
+    missing_columns = required_columns - set(df.columns)
+    if missing_columns:
+        raise ValueError(
+            "Missing required columns: " + ", ".join(sorted(missing_columns))
+        )
+
     df = df.copy()
     original_rows = len(df)
 
@@ -44,8 +54,11 @@ def clean_data(df):
     # Remove empty cryptocurrency IDs.
     df = df[df["coin"].str.strip() != ""]
 
-    # Remove zero or negative prices.
-    df = df[df["price"] > 0]
+    # Reject non-finite numeric values as well as zero/negative prices.
+    finite_price = np.isfinite(df["price"].astype(float))
+    df = df[finite_price & (df["price"] > 0)]
+    finite_change = df["chg_24h"].isna() | np.isfinite(df["chg_24h"].astype(float))
+    df = df[finite_change]
 
     # Treat the same coin + timestamp as a duplicate observation.
     # Keep the last occurrence and preserve historical timestamps.
