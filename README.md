@@ -482,6 +482,7 @@ The following checks were recorded during local project development:
 - Request timeout, retry handling, empty-response handling, and malformed or partial API data were considered in the extraction logic.
 - The cleaning function was exercised with 10,000 synthetic records. In that test, one invalid price and one duplicate observation were removed, leaving 9,998 rows.
 - A repeatable Python unit-test suite covers key cleaning and validation edge cases; run it with `python -m unittest discover -s tests -v`.
+- GitHub Actions is configured to run the unit-test suite on pushes to `main` and `review/**`, and on pull requests targeting `main`.
 - The database writer checks existing `(coin, timestamp)` keys before inserting; the SQL table also has a unique index on those columns.
 - Database insertion failure and empty API response scenarios were tested through controlled test switches.
 - A successful two-cycle pipeline run was recorded with five records fetched, cleaned, and inserted in each cycle.
