@@ -1,30 +1,17 @@
-"""Check required Python packages, local configuration, and SQL ODBC driver."""
+"""Check required packages, local configuration, and SQL ODBC driver."""
 
 from pathlib import Path
 import importlib
 import os
 
-import pyodbc
-from dotenv import load_dotenv
-
-
 PROJECT_DIR = Path(__file__).resolve().parent
 ENV_FILE = PROJECT_DIR / ".env"
 
-# Load local configuration without printing any secret values.
-load_dotenv(ENV_FILE)
-
-REQUIRED_MODULES = [
-    "requests",
-    "pandas",
-    "sqlalchemy",
-    "pyodbc",
-]
+REQUIRED_MODULES = ["requests", "pandas", "sqlalchemy", "pyodbc", "dotenv"]
 
 
 def main():
     print("--- ENVIRONMENT CHECK ---")
-
     failed = False
 
     for module_name in REQUIRED_MODULES:
@@ -35,6 +22,11 @@ def main():
         except ImportError as error:
             failed = True
             print(f"[MISSING] {module_name}: {error}")
+
+    # Load .env only after confirming python-dotenv is importable.
+    if "dotenv" in __import__("sys").modules:
+        from dotenv import load_dotenv
+        load_dotenv(ENV_FILE)
 
     if ENV_FILE.exists():
         print("[OK] Local .env file found.")
@@ -58,13 +50,18 @@ def main():
         failed = True
         print("[MISSING] SQL_DATABASE is not configured.")
 
-    installed_drivers = pyodbc.drivers()
-    if driver in installed_drivers:
-        print(f"[OK] ODBC driver is installed: {driver}")
-    else:
+    try:
+        import pyodbc
+        installed_drivers = pyodbc.drivers()
+        if driver in installed_drivers:
+            print(f"[OK] ODBC driver is installed: {driver}")
+        else:
+            failed = True
+            print(f"[MISSING] ODBC driver not found: {driver}")
+            print("Installed ODBC drivers:", installed_drivers)
+    except ImportError:
         failed = True
-        print(f"[MISSING] ODBC driver not found: {driver}")
-        print("Installed ODBC drivers:", installed_drivers)
+        print("[MISSING] pyodbc is not installed; cannot inspect ODBC drivers.")
 
     if failed:
         print("\nEnvironment check completed with issues.")
