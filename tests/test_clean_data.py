@@ -61,6 +61,18 @@ class CleanDataTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing required columns"):
             clean_data(source)
 
+    def test_missing_optional_change_column_is_created_as_missing(self):
+        source = pd.DataFrame({
+            "coin": ["bitcoin"],
+            "price": [100.0],
+            "timestamp": ["2026-11-18T10:00:00Z"],
+        })
+
+        result = clean_data(source)
+
+        self.assertEqual(len(result), 1)
+        self.assertTrue(pd.isna(result.loc[0, "chg_24h"]))
+
     def test_none_input_raises_clear_error(self):
         with self.assertRaisesRegex(ValueError, "cannot be None"):
             clean_data(None)
