@@ -112,8 +112,10 @@ SELECT
     (reliable_return_pct - average_return)
         / NULLIF(return_stddev, 0) AS z_score,
     CASE
-        WHEN reliable_return_pct IS NULL
+        WHEN reliable_return_pct IS NULL OR return_stddev IS NULL
             THEN 'Insufficient History'
+        WHEN return_stddev = 0
+            THEN 'No Variation'
         WHEN ABS(
             (reliable_return_pct - average_return)
             / NULLIF(return_stddev, 0)
