@@ -235,7 +235,7 @@ Collection timestamps are created in UTC. The pipeline converts timezone-aware U
 | `dbo.vw_CryptoIntervalQuality` | Classifies the time between consecutive observations for each cryptocurrency |
 | `dbo.vw_CryptoHourlyAnalysis` | Aggregates observations into hourly buckets and calculates movement from the previous available bucket |
 
-The three numbered SQL files contain reproducible `CREATE OR ALTER VIEW` definitions for all analytical views. They use the same reliable collection interval of 240–360 seconds.
+The numbered SQL view files contain reproducible `CREATE OR ALTER VIEW` definitions for all analytical views. They use the same reliable collection interval of 240–360 seconds.
 
 ---
 
@@ -277,7 +277,7 @@ The view uses `LAG()` to compare each bucket with the previous available bucket 
 
 ### SQL scripts in this repository
 
-Run the numbered view-creation scripts in order after creating the source table:
+Run `00_create_database.sql` first, then run the numbered view-creation scripts in order:
 
 1. [01 — Crypto analytics](sql/01_crypto_analytics.sql) — snapshot returns, moving average, interval classification, reliable returns, volatility, Z-score, and exploratory anomaly status.
 2. [02 — Hourly analysis](sql/02_hourly_analysis.sql) — hourly average prices, observation counts, previous available hourly average, and price movement.
@@ -401,7 +401,7 @@ python -m pip install -r requirements.txt
 
 ### 4. Configure SQL Server
 
-Create a database named `CryptoAnalyticsDB` and create the `dbo.CryptoPriceHistory` table with the schema described in the [Database design](#database-design) section.
+Run `sql/00_create_database.sql` in SSMS to create the database, source table, unique index, and supporting index. The script is safe to rerun and will stop with an explanatory error if existing duplicate coin/timestamp pairs prevent creation of the unique index. It does not delete existing data.
 
 Copy the example configuration and edit your local settings:
 
@@ -512,3 +512,12 @@ A local validation snapshot on November 16, 2026 recorded 235 rows in the source
 ## Disclaimer
 
 This project is for educational and analytical purposes only. It does not provide trading signals, investment advice, or recommendations to buy or sell cryptocurrency.
+
+
+## Maintenance notes
+
+- The analytics view exposes 3-, 5-, and 10-observation moving averages. Observation windows are not fixed clock-time windows when collection intervals vary.
+- The anomaly baseline in the current analytics view uses up to 20 preceding reliable returns and requires at least 10 prior returns. It does not use future observations to score the current row.
+- Set `MAX_CYCLES=0` to run the polling loop continuously, or set a positive integer for a finite run. Set `INTERVAL_SECONDS` to change the target delay between cycle start times.
+- Install `requirements-dev.txt` and run `python -m pytest` for automated cleaning and API parsing tests.
+- SQL Server execution, live API behaviour, and Power BI refresh still need to be validated in the target local environment; repository changes alone cannot verify a local SQL Server instance or PBIX data source.
